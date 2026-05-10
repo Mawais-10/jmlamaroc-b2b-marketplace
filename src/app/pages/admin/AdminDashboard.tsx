@@ -1,0 +1,159 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { Users, Store, Package, ClipboardList, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
+import { apiAdminStats, apiAdminGetRequests, AdminStats, ApiSupplierRequest } from '../../services/api';
+
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<ApiSupplierRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    Promise.all([apiAdminStats(), apiAdminGetRequests('pending')])
+      .then(([statsRes, reqRes]) => {
+        setStats(statsRes.stats);
+        setPendingRequests(reqRes.requests.slice(0, 5));
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="p-6">
+      <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+        <AlertCircle className="text-red-500" />
+        <div>
+          <p className="font-semibold text-red-700">Login Again</p>
+          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-xs text-red-500 mt-1">Your session has been expired</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const statCards = [
+    { label: 'Total Users', value: stats?.totalUsers || 0, icon: Users, color: '#1A7A5E', sub: `${stats?.buyers || 0} buyers · ${stats?.suppliers || 0} suppliers` },
+    { label: 'Active Stores', value: stats?.totalStores || 0, icon: Store, color: '#1A7A5E', sub: 'Approved stores' },
+    { label: 'Total Products', value: stats?.totalProducts || 0, icon: Package, color: '#E8820C', sub: 'Active listings' },
+    { label: 'Pending Requests', value: stats?.pendingRequests || 0, icon: ClipboardList, color: stats?.pendingRequests ? '#E8820C' : '#1A7A5E', sub: 'Awaiting review', urgent: (stats?.pendingRequests || 0) > 0 },
+  ];
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[#1A1A1A]">Dashboard</h1>
+        <p className="text-sm text-[#888888]">Welcome back, Admin.</p>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {statCards.map(card => (
+          <div
+            key={card.label}
+            className={`bg-white rounded-xl border p-5 ${card.urgent ? 'border-orange-300 shadow-sm shadow-orange-100' : 'border-[#CCCCCC]'}`}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-2 rounded-lg" style={{ backgroundColor: card.urgent ? '#FFF8E1' : '#E8F5F0' }}>
+                <card.icon size={20} style={{ color: card.color }} />
+              </div>
+              {card.urgent && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#E8820C' }}>
+                  NEW
+                </span>
+              )}
+            </div>
+            <p className="text-3xl font-bold text-[#1A1A1A]">{card.value.toLocaleString()}</p>
+            <p className="text-sm font-medium text-[#444444] mt-0.5">{card.label}</p>
+            <p className="text-xs text-[#888888] mt-0.5">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Pending supplier requests */}
+      <div className="bg-white rounded-xl border border-[#CCCCCC] overflow-hidden mb-6">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#F5F5F5]">
+          <div className="flex items-center gap-2">
+            <ClipboardList size={18} style={{ color: '#1A7A5E' }} />
+            <h2 className="font-semibold text-[#1A1A1A]">Pending Supplier Requests</h2>
+            {pendingRequests.length > 0 && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#E8820C' }}>
+                {pendingRequests.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => navigate('/admin/requests')}
+            className="flex items-center gap-1 text-sm font-medium hover:opacity-80 transition-opacity"
+            style={{ color: '#1A7A5E' }}
+          >
+            View all <ArrowRight size={14} />
+          </button>
+        </div>
+
+        {pendingRequests.length === 0 ? (
+          <div className="py-10 text-center">
+            <TrendingUp size={32} className="mx-auto mb-2 text-[#CCCCCC]" />
+            <p className="text-sm text-[#888888]">No pending requests. You're all caught up!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#F5F5F5]">
+            {pendingRequests.map(req => (
+              <div key={req._id} className="flex items-center gap-4 px-5 py-4 hover:bg-[#F9F9F9] transition-colors">
+                <div
+                  style={{ backgroundColor: '#1A7A5E' }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                >
+                  {req.user?.name?.charAt(0) || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#1A1A1A] truncate">{req.businessName}</p>
+                  <p className="text-xs text-[#888888]">{req.user?.name} · @{req.storeHandle} · {req.category} · {req.city}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-[#888888]">{new Date(req.createdAt).toLocaleDateString()}</span>
+                  <button
+                    onClick={() => navigate('/admin/requests')}
+                    className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
+                    style={{ backgroundColor: '#1A7A5E' }}
+                  >
+                    Review
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick nav cards */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        {[
+          { title: 'Review Requests', desc: 'Approve or reject supplier applications', to: '/admin/requests', color: '#E8820C' },
+          { title: 'Manage Stores', desc: 'View, activate, or deactivate stores', to: '/admin/stores', color: '#1A7A5E' },
+          { title: 'Manage Users', desc: 'View and manage platform users', to: '/admin/users', color: '#1A7A5E' },
+        ].map(card => (
+          <button
+            key={card.to}
+            onClick={() => navigate(card.to)}
+            className="flex items-center justify-between p-4 bg-white rounded-xl border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors text-left group"
+          >
+            <div>
+              <p className="font-semibold text-[#1A1A1A]">{card.title}</p>
+              <p className="text-xs text-[#888888] mt-0.5">{card.desc}</p>
+            </div>
+            <ArrowRight size={16} className="text-[#888888] group-hover:text-[#1A7A5E] transition-colors shrink-0 ml-2" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
