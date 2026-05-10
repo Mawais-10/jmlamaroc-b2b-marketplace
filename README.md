@@ -1,31 +1,31 @@
-# 🌟 ChouFliya - Premium Wholesale Marketplace
+#  ChouFliya - Premium Wholesale Marketplace
 
 ChouFliya is a high-performance, full-stack wholesale marketplace designed to connect suppliers and buyers with a seamless, AI-powered experience. Built with a focus on speed, security, and visual discovery.
 
 ![ChouFliya Preview](https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80)
 
-## 🚀 Key Features
+## Key Features
 
-### 🔍 AI Visual Search (New!)
+###  AI Visual Search (New!)
 *   **Visual Fingerprinting**: Uses **TensorFlow.js (MobileNet)** to analyze product images and generate 1024-dimension embeddings.
 *   **Vector Search**: Integrated with **MongoDB Atlas Vector Search** for lightning-fast image-to-image matching.
 *   **Discovery**: Buyers can upload photos or click search icons on existing products to find similar wholesale items instantly.
 
-### 👥 Dual Ecosystem
+###  Dual Ecosystem
 *   **Supplier Portal**: Dedicated dashboard for store management, product uploads with automatic AI indexing, and cover image customization.
 *   **Buyer Dashboard**: Clean interface for browsing, favoriting products, and tracking support requests.
 
-### 🛡️ Enterprise-Grade Security
+###  Enterprise-Grade Security
 *   **Session Isolation**: Custom context-aware authentication that prevents session leakage between Admin and User tabs.
 *   **Role-Based Access**: Secure middleware for Admin, Supplier, and Buyer roles.
 
-### 🎫 Professional Support System
+###  Professional Support System
 *   **Ticket Tracking**: Integrated support system allowing users to submit tickets and track real-time status updates (Pending, In-Progress, Resolved).
 *   **Admin Management**: Powerful admin interface for managing community health and support resolutions.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 *   **Frontend**: React (Vite), TypeScript, Tailwind CSS, Lucide Icons.
 *   **Backend**: Node.js, Express, MongoDB Atlas.
@@ -35,7 +35,7 @@ ChouFliya is a high-performance, full-stack wholesale marketplace designed to co
 
 ---
 
-## ⚙️ Installation & Setup
+##  Installation & Setup
 
 ### 1. Prerequisites
 *   Node.js (v18+)
