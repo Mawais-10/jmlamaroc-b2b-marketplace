@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
-const { protect, signToken } = require('../middleware/auth');
+const { protect, requireApproved, signToken } = require('../middleware/auth');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -20,6 +20,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       country: user.country,
       language: user.language,
       storeId: user.storeId,
+      status: user.status || 'pending',
       authProvider: user.googleId ? 'google' : 'local',
     },
   });
@@ -35,6 +36,7 @@ router.post('/register', async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ success: false, message: 'Email already registered.' });
 
+    // New users start with status: 'pending' (the model default)
     const user = await User.create({ name, email, password, country, language });
     sendTokenResponse(user, 201, res);
   } catch (err) {
@@ -53,8 +55,19 @@ router.post('/login', async (req, res) => {
     if (!user || !user.password) return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account has been deactivated.' });
 
+    // Check if user is blocked
+    if (user.status === 'blocked') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Contact support.', statusCode: 'BLOCKED' });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+
+    // Initialize first login time for pending users (to track 30-min auto-block)
+    if (user.status === 'pending' && !user.firstLoginAt) {
+      user.firstLoginAt = new Date();
+      await user.save();
+    }
 
     sendTokenResponse(user, 200, res);
   } catch (err) {
@@ -82,10 +95,22 @@ router.post('/google', async (req, res) => {
       if (!user.avatar && picture) user.avatar = picture;
       await user.save();
     } else {
+      // New Google user — status defaults to 'pending'
       user = await User.create({ name, email, googleId, avatar: picture || '', role: 'buyer' });
     }
 
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account has been deactivated.' });
+
+    // Check if blocked
+    if (user.status === 'blocked') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Contact support.', statusCode: 'BLOCKED' });
+    }
+
+    if (user.status === 'pending' && !user.firstLoginAt) {
+      user.firstLoginAt = new Date();
+      await user.save();
+    }
+
     sendTokenResponse(user, 200, res);
   } catch (err) {
     console.error('Google auth error:', err);
@@ -112,10 +137,22 @@ router.post('/google-access', async (req, res) => {
       await user.save();
     } else {
       console.log('Creating new user...', email);
+      // New Google user — status defaults to 'pending'
       user = await User.create({ name, email, googleId, avatar: picture || '', role: 'buyer' });
     }
 
     if (!user.isActive) return res.status(401).json({ success: false, message: 'Account has been deactivated.' });
+
+    // Check if blocked
+    if (user.status === 'blocked') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Contact support.', statusCode: 'BLOCKED' });
+    }
+
+    if (user.status === 'pending' && !user.firstLoginAt) {
+      user.firstLoginAt = new Date();
+      await user.save();
+    }
+
     sendTokenResponse(user, 200, res);
   } catch (err) {
     console.error('Google access auth error:', err);
@@ -138,6 +175,7 @@ router.get('/me', protect, async (req, res) => {
         country: user.country,
         language: user.language,
         storeId: user.storeId,
+        status: user.status || 'pending',
         favorites: user.favorites,
         collections: user.collections,
         authProvider: user.googleId ? 'google' : 'local',
@@ -149,7 +187,7 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // PUT /api/auth/profile
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, requireApproved, async (req, res) => {
   try {
     const { name, country, language } = req.body;
     const updates = {};
@@ -165,7 +203,7 @@ router.put('/profile', protect, async (req, res) => {
 });
 
 // PUT /api/auth/change-password
-router.put('/change-password', protect, async (req, res) => {
+router.put('/change-password', protect, requireApproved, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ success: false, message: 'Both passwords required.' });
@@ -185,7 +223,7 @@ router.put('/change-password', protect, async (req, res) => {
 });
 
 // POST /api/auth/favorites/:productId
-router.post('/favorites/:productId', protect, async (req, res) => {
+router.post('/favorites/:productId', protect, requireApproved, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const pid = req.params.productId;
@@ -203,7 +241,7 @@ router.post('/favorites/:productId', protect, async (req, res) => {
 });
 
 // DELETE /api/auth/favorites/:productId
-router.delete('/favorites/:productId', protect, async (req, res) => {
+router.delete('/favorites/:productId', protect, requireApproved, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const pid = req.params.productId;
@@ -221,7 +259,7 @@ router.delete('/favorites/:productId', protect, async (req, res) => {
 });
 
 // DELETE /api/auth/account
-router.delete('/account', protect, async (req, res) => {
+router.delete('/account', protect, requireApproved, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.user._id, { isActive: false });
     res.json({ success: true, message: 'Account deactivated.' });

@@ -3,7 +3,8 @@ import {
   apiGetMe, apiLogin, apiRegister, apiGoogleAuth, apiGoogleAccess, apiUpdateProfile,
   apiAddFavorite, apiRemoveFavorite, apiDeleteAccount,
   apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
-  apiGetMyTickets,
+  apiGetMyTickets, apiCreateSupportTicket,
+  apiGetCollections, apiCreateCollection, apiUpdateCollection, apiDeleteCollection, apiAddItemToCollection,
   ApiUser, ApiNotification
 } from '../services/api';
 import { Collection, SupportTicket } from '../data/mockData';
@@ -15,6 +16,7 @@ export interface User {
   avatar?: string;
   authProvider: 'local' | 'google';
   role: 'buyer' | 'supplier' | 'admin';
+  status: 'pending' | 'approved' | 'blocked';
   country: string;
   language: string;
   storeId?: string;
@@ -41,6 +43,7 @@ type Action =
   | { type: 'ADD_FAVORITE'; payload: string }
   | { type: 'REMOVE_FAVORITE'; payload: string }
   | { type: 'ADD_COLLECTION'; payload: Collection }
+  | { type: 'SET_COLLECTIONS'; payload: Collection[] }
   | { type: 'DELETE_COLLECTION'; payload: string }
   | { type: 'UPDATE_COLLECTION'; payload: { id: string; updates: Partial<Collection> } }
   | { type: 'ADD_TO_COLLECTION'; payload: { collectionId: string; productId: string } }
@@ -53,22 +56,12 @@ type Action =
   | { type: 'MARK_NOTIFICATION_READ'; payload: string }
   | { type: 'MARK_ALL_NOTIFICATIONS_READ' };
 
-const COLLECTIONS_KEY = 'choufliya_collections';
-const TICKETS_KEY = 'choufliya_tickets';
-
-const loadCollections = (): Collection[] => {
-  try { return JSON.parse(localStorage.getItem(COLLECTIONS_KEY) || '[]'); } catch { return []; }
-};
-const loadTickets = (): SupportTicket[] => {
-  try { return JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]'); } catch { return []; }
-};
-
 const initialState: AppState = {
   user: null,
   isLoading: true,
   favorites: [],
-  collections: loadCollections(),
-  tickets: loadTickets(),
+  collections: [],
+  tickets: [],
   sidebarCollapsed: false,
   isApiAvailable: false,
   notifications: [],
@@ -94,6 +87,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, favorites: state.favorites.filter(id => id !== action.payload) };
     case 'ADD_COLLECTION':
       return { ...state, collections: [...state.collections, action.payload] };
+    case 'SET_COLLECTIONS':
+      return { ...state, collections: action.payload };
     case 'DELETE_COLLECTION':
       return { ...state, collections: state.collections.filter(c => c.id !== action.payload) };
     case 'UPDATE_COLLECTION':
@@ -152,6 +147,7 @@ const mapApiUser = (u: ApiUser): User => ({
   avatar: u.avatar,
   authProvider: u.authProvider,
   role: u.role,
+  status: u.status || 'pending',
   country: u.country,
   language: u.language,
   storeId: u.storeId,
@@ -167,15 +163,16 @@ interface AppContextType extends AppState {
   addFavorite: (productId: string) => void;
   removeFavorite: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
-  addCollection: (collection: Omit<Collection, 'id' | 'createdAt'>) => void;
-  deleteCollection: (id: string) => void;
-  updateCollection: (id: string, updates: Partial<Collection>) => void;
-  addToCollection: (collectionId: string, productId: string) => void;
-  addTicket: (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'replies'>) => void;
+  addCollection: (collection: Omit<Collection, 'id' | 'createdAt'>) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
+  updateCollection: (id: string, updates: Partial<Collection>) => Promise<void>;
+  addToCollection: (collectionId: string, productId: string) => Promise<void>;
+  addTicket: (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'replies'>) => Promise<void>;
   toggleSidebar: () => void;
   downloadData: () => void;
   refreshNotifications: () => Promise<void>;
   refreshTickets: () => Promise<void>;
+  refreshCollections: () => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
 }
@@ -202,6 +199,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             dispatch({ type: 'SET_LOADING', payload: false });
             return;
           }
+          // If user is blocked, clear token and don't log in
+          if (res.user.status === 'blocked') {
+            console.log('Blocked user detected, clearing session');
+            localStorage.removeItem('choufliya_token');
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          }
           dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
           dispatch({ type: 'SET_API_STATUS', payload: true });
           if (res.user.favorites) dispatch({ type: 'SET_FAVORITES', payload: res.user.favorites });
@@ -216,23 +220,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  // Persist collections & tickets to localStorage
-  useEffect(() => {
-    localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(state.collections));
-  }, [state.collections]);
-
-  useEffect(() => {
-    localStorage.setItem(TICKETS_KEY, JSON.stringify(state.tickets));
-  }, [state.tickets]);
-
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await apiLogin(email, password);
+      // Blocked users: don't store token
+      if (res.user.status === 'blocked') {
+        throw new Error('Your account has been suspended. Contact support.');
+      }
       localStorage.setItem('choufliya_token', res.token);
       dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
       dispatch({ type: 'SET_API_STATUS', payload: true });
       return true;
-    } catch {
+    } catch (err: any) {
+      // Re-throw blocked errors so the UI can show them
+      if (err?.message?.includes('suspended')) throw err;
       return false;
     }
   };
@@ -261,6 +262,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       const res = await apiRegister(name, email, password);
+      // New users are pending — store token so we can redirect to pending page
       localStorage.setItem('choufliya_token', res.token);
       dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
       dispatch({ type: 'SET_API_STATUS', payload: true });
@@ -304,28 +306,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const isFavorite = (id: string) => state.favorites.includes(id);
 
-  const addCollection = (col: Omit<Collection, 'id' | 'createdAt'>) => {
-    dispatch({
-      type: 'ADD_COLLECTION',
-      payload: { ...col, id: `col_${Date.now()}`, createdAt: new Date().toISOString() },
-    });
+  const refreshCollections = useCallback(async () => {
+    if (!state.user) return;
+    try {
+      const res = await apiGetCollections();
+      const mapped: Collection[] = res.collections.map(c => ({
+        id: c._id,
+        name: c.name,
+        description: c.description || '',
+        color: c.color || '#6366f1',
+        items: c.items || [],
+        createdAt: c.createdAt
+      }));
+      dispatch({ type: 'SET_COLLECTIONS', payload: mapped });
+    } catch (err) {
+      console.error('Failed to fetch collections', err);
+    }
+  }, [state.user]);
+
+  const addCollection = async (col: Omit<Collection, 'id' | 'createdAt'>) => {
+    try {
+      const res = await apiCreateCollection(col);
+      dispatch({
+        type: 'ADD_COLLECTION',
+        payload: { ...res.collection, id: res.collection._id },
+      });
+    } catch (err) {
+      console.error('Failed to create collection', err);
+    }
   };
 
-  const deleteCollection = (id: string) => dispatch({ type: 'DELETE_COLLECTION', payload: id });
-  const updateCollection = (id: string, updates: Partial<Collection>) =>
-    dispatch({ type: 'UPDATE_COLLECTION', payload: { id, updates } });
-  const addToCollection = (collectionId: string, productId: string) =>
-    dispatch({ type: 'ADD_TO_COLLECTION', payload: { collectionId, productId } });
+  const deleteCollection = async (id: string) => {
+    try {
+      await apiDeleteCollection(id);
+      dispatch({ type: 'DELETE_COLLECTION', payload: id });
+    } catch (err) {
+      console.error('Failed to delete collection', err);
+    }
+  };
 
-  const addTicket = (ticket: SupportTicket) => {
-    dispatch({ type: 'ADD_TICKET', payload: ticket });
+  const updateCollection = async (id: string, updates: Partial<Collection>) => {
+    try {
+      const res = await apiUpdateCollection(id, updates);
+      dispatch({ type: 'UPDATE_COLLECTION', payload: { id, updates: { ...res.collection, id: res.collection._id } } });
+    } catch (err) {
+      console.error('Failed to update collection', err);
+    }
+  };
+
+  const addToCollection = async (collectionId: string, productId: string) => {
+    try {
+      await apiAddItemToCollection(collectionId, productId);
+      dispatch({ type: 'ADD_TO_COLLECTION', payload: { collectionId, productId } });
+    } catch (err) {
+      console.error('Failed to add to collection', err);
+    }
+  };
+
+  const addTicket = async (ticketData: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'replies'>) => {
+    try {
+      const res = await apiCreateSupportTicket(ticketData);
+      const ticket = {
+        ...res.ticket,
+        id: res.ticket._id,
+        replies: res.ticket.replies.map((r: any) => ({
+          author: r.sender,
+          message: r.message,
+          timestamp: r.createdAt
+        }))
+      };
+      dispatch({ type: 'ADD_TICKET', payload: ticket });
+    } catch (err) {
+      console.error('Failed to add ticket', err);
+    }
   };
 
   const refreshTickets = useCallback(async () => {
     if (!state.user) return;
     try {
       const res = await apiGetMyTickets();
-      dispatch({ type: 'SET_TICKETS', payload: res.tickets });
+      const mapped: SupportTicket[] = res.tickets.map((t: any) => ({
+        ...t,
+        id: t._id,
+        replies: (t.replies || []).map((r: any) => ({
+          author: r.sender,
+          message: r.message,
+          timestamp: r.createdAt
+        }))
+      }));
+      dispatch({ type: 'SET_TICKETS', payload: mapped });
     } catch (err) {
       console.error('Failed to fetch tickets', err);
     }
@@ -366,21 +435,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (state.user) {
       refreshNotifications();
       refreshTickets();
+      refreshCollections();
       // Poll every 60 seconds
       const interval = setInterval(() => {
         refreshNotifications();
         refreshTickets();
+        refreshCollections();
       }, 60000);
       return () => clearInterval(interval);
     }
-  }, [state.user, refreshNotifications, refreshTickets]);
+  }, [state.user, refreshNotifications, refreshTickets, refreshCollections]);
 
   return (
     <AppContext.Provider value={{
       ...state, login, loginWithGoogle, register, logout, updateUser, deleteAccount,
       addFavorite, removeFavorite, isFavorite, addCollection, deleteCollection,
       updateCollection, addToCollection, addTicket, toggleSidebar, downloadData,
-      refreshNotifications, refreshTickets, markNotificationRead, markAllNotificationsRead,
+      refreshNotifications, refreshTickets, refreshCollections, markNotificationRead, markAllNotificationsRead,
     }}>
       {children}
     </AppContext.Provider>

@@ -113,12 +113,12 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(232,130,12,0.15)', borderLeft: '3px solid #E8820C' }}>
+          {/* <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(232,130,12,0.15)', borderLeft: '3px solid #E8820C' }}>
             <p className="text-sm text-[#E8F5F0] opacity-80">
               <span className="font-semibold text-[#E8820C]">Admin Panel:</span> Access at{' '}
               <code className="text-white">http://localhost:5000</code> after running the backend server.
             </p>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex items-center gap-2 text-[#E8F5F0] opacity-60 text-sm">

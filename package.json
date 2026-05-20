@@ -4,8 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "dev:server": "cd server && npm run dev",
     "build": "vite build",
-    "dev": "vite"
+    "build:prod": "vite build --mode production",
+    "start": "cd server && node index.js",
+    "start:prod": "set NODE_ENV=production && cd server && node index.js",
+    "install:all": "npm install && cd server && npm install"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

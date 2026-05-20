@@ -14,6 +14,11 @@ const userSchema = new mongoose.Schema({
   },
   country: { type: String, default: 'MA' },
   language: { type: String, default: 'en' },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'blocked'],
+    default: 'pending',
+  },
   isActive: { type: Boolean, default: true },
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   collections: [{
@@ -26,6 +31,7 @@ const userSchema = new mongoose.Schema({
   }],
   supplierRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SupplierRequest' },
   storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
+  firstLoginAt: { type: Date },
 }, { timestamps: true });
 
 // Hash password before save

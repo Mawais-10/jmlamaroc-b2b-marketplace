@@ -116,17 +116,17 @@ export default function AdminSupport() {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden">
-                        {ticket.user.avatar ? (
+                        {ticket.user?.avatar ? (
                           <img src={ticket.user.avatar} className="w-full h-full object-cover" alt="" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center font-bold text-[#1A7A5E]">
-                            {ticket.user.name.charAt(0)}
+                            {ticket.user?.name?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-[#1A1A1A] truncate">{ticket.user.name}</p>
-                        <p className="text-xs text-[#888888] truncate">{ticket.user.email}</p>
+                        <p className="text-sm font-bold text-[#1A1A1A] truncate">{ticket.user?.name || 'Unknown User'}</p>
+                        <p className="text-xs text-[#888888] truncate">{ticket.user?.email || 'N/A'}</p>
                       </div>
                     </div>
                   </td>

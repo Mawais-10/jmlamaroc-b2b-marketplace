@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Users, Store, Package, ClipboardList, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Store, Package, ClipboardList, ArrowRight, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { apiAdminStats, apiAdminGetRequests, AdminStats, ApiSupplierRequest } from '../../services/api';
 
 export default function AdminDashboard() {
@@ -41,9 +41,9 @@ export default function AdminDashboard() {
 
   const statCards = [
     { label: 'Total Users', value: stats?.totalUsers || 0, icon: Users, color: '#1A7A5E', sub: `${stats?.buyers || 0} buyers · ${stats?.suppliers || 0} suppliers` },
+    { label: 'Pending Users', value: stats?.pendingUsers || 0, icon: RefreshCw, color: stats?.pendingUsers ? '#E8820C' : '#1A7A5E', sub: 'Awaiting approval', urgent: (stats?.pendingUsers || 0) > 0 },
     { label: 'Active Stores', value: stats?.totalStores || 0, icon: Store, color: '#1A7A5E', sub: 'Approved stores' },
-    { label: 'Total Products', value: stats?.totalProducts || 0, icon: Package, color: '#E8820C', sub: 'Active listings' },
-    { label: 'Pending Requests', value: stats?.pendingRequests || 0, icon: ClipboardList, color: stats?.pendingRequests ? '#E8820C' : '#1A7A5E', sub: 'Awaiting review', urgent: (stats?.pendingRequests || 0) > 0 },
+    { label: 'Pending Requests', value: stats?.pendingRequests || 0, icon: ClipboardList, color: stats?.pendingRequests ? '#E8820C' : '#1A7A5E', sub: 'Supplier requests', urgent: (stats?.pendingRequests || 0) > 0 },
   ];
 
   return (

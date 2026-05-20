@@ -160,7 +160,7 @@ export default function SupplierApplyPage() {
 
       <div className="max-w-2xl mx-auto px-6 py-8">
         {/* Info banner */}
-        <div className="flex items-start gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: '#E8F5F0', borderLeft: '4px solid #1A7A5E' }}>
+        {/* <div className="flex items-start gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: '#E8F5F0', borderLeft: '4px solid #1A7A5E' }}>
           <AlertCircle size={18} style={{ color: '#1A7A5E' }} className="shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium" style={{ color: '#1A7A5E' }}>How it works</p>
@@ -168,7 +168,7 @@ export default function SupplierApplyPage() {
               Fill out this form → Our admin reviews your application (usually within 24h) → If approved, you'll get access to your supplier dashboard where you can set up your store, upload products via Cloudinary, and set your Telegram/WhatsApp contact.
             </p>
           </div>
-        </div>
+        </div> */}
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-[#CCCCCC] p-6 space-y-5">
           <h2 className="text-lg font-bold text-[#1A1A1A]">Business Information</h2>

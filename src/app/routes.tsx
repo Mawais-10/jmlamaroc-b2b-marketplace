@@ -16,6 +16,8 @@ import AboutPage from './pages/AboutPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SupplierApplyPage from './pages/SupplierApplyPage';
 import SupplierDashboard from './pages/SupplierDashboard';
+import PendingApprovalPage from './pages/PendingApprovalPage';
+import BlockedPage from './pages/BlockedPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -49,6 +51,8 @@ export const router = createBrowserRouter([
       { path: 'apply-supplier', Component: SupplierApplyPage },
       { path: 'store/dashboard', Component: SupplierDashboard },
       { path: 'store/dashboard/:tab', Component: SupplierDashboard },
+      { path: 'pending-approval', Component: PendingApprovalPage },
+      { path: 'blocked', Component: BlockedPage },
       { path: '*', Component: NotFoundPage },
     ],
   },

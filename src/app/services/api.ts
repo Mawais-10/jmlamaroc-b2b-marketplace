@@ -4,7 +4,7 @@
  * Run: cd server && npm install && node seed.js && npm start
  */
 
-const API_BASE = '/api'; // Proxied via vite.config.ts to http://localhost:5000
+const API_BASE = import.meta.env.VITE_API_URL || '/api'; // Proxied in dev, absolute in prod if set
 
 const getToken = (isAdminRequest: boolean) => {
   if (isAdminRequest) return localStorage.getItem('choufliya_admin_token') || localStorage.getItem('choufliya_token');
@@ -39,7 +39,14 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     return {} as T;
   }
 
-  if (!res.ok) throw new Error(data.message || 'API error');
+  if (!res.ok) {
+    if (data.statusCode === 'BLOCKED') {
+      console.log('User is blocked - clearing session');
+      localStorage.removeItem('choufliya_token');
+      window.location.href = '/blocked';
+    }
+    throw new Error(data.message || 'API error');
+  }
   return data as T;
 }
 
@@ -191,6 +198,15 @@ export const apiAdminGetUsers = (params?: Record<string, string>) =>
 export const apiAdminDeactivateUser = (id: string) =>
   request<{ success: boolean }>(`/admin/users/${id}/deactivate`, { method: 'PUT' });
 
+export const apiAdminApproveUser = (id: string) =>
+  request<{ success: boolean; user: ApiUser; message: string }>(`/admin/users/${id}/approve`, { method: 'PUT' });
+
+export const apiAdminBlockUser = (id: string) =>
+  request<{ success: boolean; user: ApiUser; message: string }>(`/admin/users/${id}/block`, { method: 'PUT' });
+
+export const apiAdminUnblockUser = (id: string) =>
+  request<{ success: boolean; user: ApiUser; message: string }>(`/admin/users/${id}/unblock`, { method: 'PUT' });
+
 export const apiAdminGetStores = (params?: Record<string, string>) =>
   request<{ success: boolean; stores: ApiStore[]; total: number }>(`/admin/stores${params ? '?' + new URLSearchParams(params) : ''}`);
 
@@ -252,6 +268,32 @@ export const apiCreateSupportTicket = (data: { subject: string; message: string;
 
 export const apiGetMyTickets = () => request<{ success: boolean; tickets: any[] }>('/support/my-tickets');
 
+// ─── Collections ─────────────────────────────────────────────────────────────
+
+export const apiGetCollections = () =>
+  request<{ success: boolean; collections: any[] }>('/collections');
+
+export const apiCreateCollection = (data: { name: string; description?: string; color?: string; items?: string[] }) =>
+  request<{ success: boolean; collection: any }>('/collections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const apiUpdateCollection = (id: string, data: Partial<{ name: string; description: string; color: string; items: string[] }>) =>
+  request<{ success: boolean; collection: any }>(`/collections/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+export const apiDeleteCollection = (id: string) =>
+  request<{ success: boolean; message: string }>(`/collections/${id}`, { method: 'DELETE' });
+
+export const apiAddItemToCollection = (collectionId: string, productId: string) =>
+  request<{ success: boolean; collection: any }>(`/collections/${collectionId}/items`, {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  });
+
 // Admin - Support
 export const apiAdminGetSupportTickets = (params?: any) => {
   const qs = params ? '?' + new URLSearchParams(params).toString() : '';
@@ -293,11 +335,13 @@ export interface ApiUser {
   email: string;
   avatar?: string;
   role: 'buyer' | 'supplier' | 'admin';
+  status?: 'pending' | 'approved' | 'blocked';
   country: string;
   language: string;
   authProvider: 'local' | 'google';
   storeId?: string;
   favorites?: string[];
+  createdAt?: string;
 }
 
 export interface ApiStore {
@@ -374,4 +418,6 @@ export interface AdminStats {
   pendingRequests: number;
   buyers: number;
   suppliers: number;
+  pendingUsers: number;
+  blockedUsers: number;
 }

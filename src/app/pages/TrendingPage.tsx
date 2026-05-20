@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Radio, TrendingUp, Search as SearchIcon, Loader2, Heart } from 'lucide-react';
 import { apiGetProducts, ApiProduct } from '../services/api';
+import { useApp } from '../context/AppContext';
 
 const TIME_FILTERS = [
   { label: '3 days', days: 3 },

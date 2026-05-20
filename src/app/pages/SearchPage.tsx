@@ -4,7 +4,7 @@ import {
   Search, ImagePlus, Heart, X, ChevronDown, Zap, Loader2, 
   Home, Share2, Tag, Copy, LayoutGrid, Store as StoreIcon,
   CheckCircle2, AlertCircle, ArrowRight, Image as ImageIcon,
-  Send
+  Send, Shield
 } from 'lucide-react';
 import { 
   apiGetProducts, apiGetStores, apiCreateSearchSession, apiGetSearchSession,

@@ -236,7 +236,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Delete account */}
-                <div className="bg-white rounded-xl border-2 p-6" style={{ borderColor: '#CC0000' + '30' }}>
+                {/* <div className="bg-white rounded-xl border-2 p-6" style={{ borderColor: '#CC0000' + '30' }}>
                   <div className="flex items-start gap-3 mb-4">
                     <div className="p-2 rounded-xl bg-red-50">
                       <AlertTriangle size={18} style={{ color: '#CC0000' }} />
@@ -253,7 +253,7 @@ export default function SettingsPage() {
                   >
                     Delete my account
                   </button>
-                </div>
+                </div> */}
               </div>
             )}
           </div>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Delete account modal */}
-      {showDeleteModal && (
+      {/* {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center gap-2 mb-3">
@@ -291,7 +291,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

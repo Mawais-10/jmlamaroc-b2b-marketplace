@@ -96,10 +96,10 @@ export function AdminLayout() {
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-400" />
-            <span className="text-xs text-white/60">API Connected</span>
+            {/* <span className="w-2 h-2 rounded-full bg-green-400" /> */}
+            <span className="text-xs text-white/60"></span>
           </div>
-          <div className="ml-auto text-xs text-white/40">ChouFliya Admin · v2.0</div>
+          <div className="ml-auto text-xs text-white/40"></div>
         </div>
 
         {/* Page content */}

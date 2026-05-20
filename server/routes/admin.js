@@ -14,16 +14,18 @@ router.use(protect, requireAdmin);
 // GET /api/admin/stats
 router.get('/stats', async (req, res) => {
   try {
-    const [totalUsers, totalStores, totalProducts, pendingRequests, buyers, suppliers] = await Promise.all([
+    const [totalUsers, totalStores, totalProducts, pendingRequests, buyers, suppliers, pendingUsers, blockedUsers] = await Promise.all([
       User.countDocuments({ isActive: true }),
       Store.countDocuments({ isApproved: true }),
       Product.countDocuments({ isActive: true }),
       SupplierRequest.countDocuments({ status: 'pending' }),
       User.countDocuments({ role: 'buyer', isActive: true }),
       User.countDocuments({ role: 'supplier', isActive: true }),
+      User.countDocuments({ status: 'pending' }),
+      User.countDocuments({ status: 'blocked' }),
     ]);
 
-    res.json({ success: true, stats: { totalUsers, totalStores, totalProducts, pendingRequests, buyers, suppliers } });
+    res.json({ success: true, stats: { totalUsers, totalStores, totalProducts, pendingRequests, buyers, suppliers, pendingUsers, blockedUsers } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error fetching stats.' });
   }
@@ -66,8 +68,12 @@ router.put('/supplier-requests/:id/approve', async (req, res) => {
       isApproved: true,
     });
 
-    // Update user role
-    await User.findByIdAndUpdate(request.user._id, { role: 'supplier', storeId: store._id });
+    // Update user role and status
+    await User.findByIdAndUpdate(request.user._id, { 
+      role: 'supplier', 
+      storeId: store._id,
+      status: 'approved' 
+    });
 
     // Update request status
     request.status = 'approved';
@@ -122,24 +128,119 @@ router.put('/supplier-requests/:id/reject', async (req, res) => {
 // GET /api/admin/users
 router.get('/users', async (req, res) => {
   try {
-    const { role, search, page = 1, limit = 20 } = req.query;
-    const query = { isActive: true };
+    const { role, search, status, page = 1, limit = 20 } = req.query;
+    const query = {};
+    // Filter by status if provided, otherwise show all
+    if (status && status !== 'all') {
+      query.status = status;
+    }
     if (role && role !== 'all') query.role = role;
     if (search) query.$or = [
       { name: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
     ];
 
-    const users = await User.find(query)
+    const rawUsers = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
+    const users = rawUsers.map(u => ({
+      id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      avatar: u.avatar,
+      role: u.role,
+      status: u.status || 'pending',
+      country: u.country,
+      authProvider: u.googleId ? 'google' : 'local',
+      createdAt: u.createdAt
+    }));
+
     const total = await User.countDocuments(query);
     res.json({ success: true, users, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error fetching users.' });
+  }
+});
+
+// PUT /api/admin/users/:id/approve — Approve a pending user
+router.put('/users/:id/approve', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    
+    // Prevent modifying own status
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'Cannot change your own status.' });
+    }
+
+    user.status = 'approved';
+    await user.save();
+
+    // Notify the user
+    await Notification.create({
+      recipient: user._id,
+      title: 'Account Approved! ✅',
+      message: 'Your account has been approved. You now have full access to ChouFliya.',
+      type: 'success',
+    });
+
+    res.json({ success: true, message: `User "${user.name}" approved.`, user });
+  } catch (err) {
+    console.error('Approve user error:', err);
+    res.status(500).json({ success: false, message: 'Error approving user.' });
+  }
+});
+
+// PUT /api/admin/users/:id/block — Block a user
+router.put('/users/:id/block', async (req, res) => {
+  try {
+    if (req.params.id === req.user._id.toString()) return res.status(400).json({ success: false, message: 'Cannot block your own account.' });
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    user.status = 'blocked';
+    await user.save();
+
+    // Notify the user
+    await Notification.create({
+      recipient: user._id,
+      title: 'Account Suspended',
+      message: 'Your account has been suspended by an administrator. Contact support for assistance.',
+      type: 'error',
+    });
+
+    res.json({ success: true, message: `User "${user.name}" blocked.`, user });
+  } catch (err) {
+    console.error('Block user error:', err);
+    res.status(500).json({ success: false, message: 'Error blocking user.' });
+  }
+});
+
+// PUT /api/admin/users/:id/unblock — Unblock a blocked user (sets back to approved)
+router.put('/users/:id/unblock', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    user.status = 'approved';
+    await user.save();
+
+    // Notify the user
+    await Notification.create({
+      recipient: user._id,
+      title: 'Account Restored ✅',
+      message: 'Your account has been unblocked. You can now access ChouFliya again.',
+      type: 'success',
+    });
+
+    res.json({ success: true, message: `User "${user.name}" unblocked.`, user });
+  } catch (err) {
+    console.error('Unblock user error:', err);
+    res.status(500).json({ success: false, message: 'Error unblocking user.' });
   }
 });
 
@@ -164,11 +265,16 @@ router.get('/stores', async (req, res) => {
       { handle: { $regex: search, $options: 'i' } },
     ];
 
-    const stores = await Store.find(query)
+    const rawStores = await Store.find(query)
       .populate('owner', 'name email')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
+
+    const stores = rawStores.map(s => ({
+      ...s.toObject(),
+      id: s._id.toString()
+    }));
 
     const total = await Store.countDocuments(query);
     res.json({ success: true, stores, total });
@@ -212,10 +318,15 @@ router.get('/products', async (req, res) => {
       { storeName: { $regex: search, $options: 'i' } },
     ];
 
-    const products = await Product.find(query)
+    const rawProducts = await Product.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
+
+    const products = rawProducts.map(p => ({
+      ...p.toObject(),
+      id: p._id.toString()
+    }));
 
     const total = await Product.countDocuments(query);
     res.json({ success: true, products, total });

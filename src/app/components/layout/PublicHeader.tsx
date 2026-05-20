@@ -88,11 +88,11 @@ export function PublicHeader() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#1A7A5E] transition-colors px-2 py-1 rounded">
+          {/* <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#1A7A5E] transition-colors px-2 py-1 rounded">
             <Globe size={15} />
             <span className="hidden sm:inline">GB EN</span>
             <ChevronDown size={13} />
-          </button>
+          </button> */}
           <button onClick={handleFavorites} className="p-2 rounded-lg hover:bg-[#E8F5F0] text-[#444444] hover:text-[#1A7A5E] transition-colors">
             <Heart size={20} />
           </button>

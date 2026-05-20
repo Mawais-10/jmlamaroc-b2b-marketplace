@@ -220,11 +220,11 @@ export function AuthTopBar() {
 
   return (
     <div className="h-14 bg-white border-b border-[#CCCCCC] flex items-center justify-end px-6 gap-3 shrink-0 relative">
-      <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#1A7A5E] transition-colors px-2 py-1 rounded">
+      {/* <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#1A7A5E] transition-colors px-2 py-1 rounded">
         <Globe size={15} />
         <span>EN</span>
         <ChevronDown size={13} />
-      </button>
+      </button> */}
 
       {/* Notifications */}
       <div className="relative">

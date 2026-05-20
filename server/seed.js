@@ -19,13 +19,13 @@ async function seed() {
 
     const existing = await User.findOne({ email: adminEmail });
     if (existing) {
-      console.log(`ℹ️  Admin user already exists: ${adminEmail}`);
+      console.log(` Admin user already exists: ${adminEmail}`);
     } else {
       await User.create({ name: 'ChouFliya Admin', email: adminEmail, password: adminPass, role: 'admin' });
-      console.log(`✅ Admin user created: ${adminEmail} / ${adminPass}`);
+      console.log(`Admin user created: ${adminEmail} / ${adminPass}`);
     }
 
-    console.log('\n🎉 Seed completed successfully!');
+    console.log('\n Seed completed successfully!');
     console.log('\nAdmin credentials:');
     console.log(`  Email:    ${adminEmail}`);
     console.log(`  Password: ${adminPass}`);

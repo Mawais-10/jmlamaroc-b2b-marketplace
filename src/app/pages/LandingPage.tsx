@@ -1,8 +1,123 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, ImagePlus, Shield, Zap, Users, Package, CheckCircle, ArrowRight, Star } from 'lucide-react';
+import { 
+  Search, ImagePlus, Shield, Zap, Users, Package, CheckCircle, 
+  ArrowRight, Star, UserPlus 
+} from 'lucide-react';
 import { DEMO_SEARCH_RESULTS, WHATSAPP_BECOME_SUPPLIER_URL, CATEGORIES } from '../data/mockData';
 import { apiGetStores, ApiStore } from '../services/api';
+
+// Category icons — SVG paths for each category
+const CATEGORY_ICONS: Record<string, JSX.Element> = {
+  'Women\'s Clothing': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M12 2c-1.5 0-3 1-3 3v1L6 8v4h12V8l-3-2V5c0-2-1.5-3-3-3z" />
+      <path d="M6 12v8a1 1 0 001 1h10a1 1 0 001-1v-8" />
+    </svg>
+  ),
+  Shoes: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M2 16l2-8h6l2 4h8a1 1 0 011 1v2a2 2 0 01-2 2H3a1 1 0 01-1-1v-1z" />
+      <circle cx="6" cy="19" r="1.5" /><circle cx="17" cy="19" r="1.5" />
+    </svg>
+  ),
+  Jewelry: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
+  Bags: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 01-8 0" />
+    </svg>
+  ),
+  'Men\'s Clothing': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H7v10a1 1 0 001 1h8a1 1 0 001-1V10h3.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z" />
+    </svg>
+  ),
+  Perfume: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M9 3h6v4H9z" /><rect x="6" y="7" width="12" height="14" rx="2" />
+      <path d="M12 3V1" /><path d="M9.5 2.5c0-1 1-1.5 2.5-1.5s2.5.5 2.5 1.5" />
+    </svg>
+  ),
+  'Kitchen Tools': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
+      <line x1="7" y1="2" x2="7" y2="11" />
+      <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
+    </svg>
+  ),
+  Skincare: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+  'Kids\' Clothing': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <circle cx="12" cy="5" r="3" />
+      <path d="M6 9l-2 13h16L18 9l-3 3-3-2-3 2-3-3z" />
+    </svg>
+  ),
+  'Kitchen Appliances': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+      <line x1="12" y1="12" x2="12" y2="16" /><line x1="10" y1="14" x2="14" y2="14" />
+    </svg>
+  ),
+  'Hair Care': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M9 12a4 4 0 104 4V4a5 5 0 00-3 4.5" />
+      <path d="M6 20a4 4 0 004-4" />
+    </svg>
+  ),
+  Bathroom: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M9 6l-5 5h18" />
+      <path d="M4 11v6a2 2 0 002 2h12a2 2 0 002-2v-6" />
+      <path d="M4 15h16" />
+    </svg>
+  ),
+  Bedding: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M2 9h20v12H2z" /><path d="M2 9V6a2 2 0 012-2h16a2 2 0 012 2v3" />
+      <path d="M2 13h20" />
+    </svg>
+  ),
+  Automotive: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2" />
+      <circle cx="7.5" cy="17.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />
+    </svg>
+  ),
+  default: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  ),
+};
+
+const LANDING_CATEGORIES = [
+  { id: 'womens-clothing', name: "Women's Clothing" },
+  { id: 'shoes', name: 'Shoes' },
+  { id: 'jewelry', name: 'Jewelry' },
+  { id: 'bags', name: 'Bags' },
+  { id: 'mens-clothing', name: "Men's Clothing" },
+  { id: 'perfume', name: 'Perfume' },
+  { id: 'kitchen-tools', name: 'Kitchen Tools' },
+  { id: 'skincare', name: 'Skincare' },
+  { id: 'kids-clothing', name: "Kids' Clothing" },
+  { id: 'kitchen-appliances', name: 'Kitchen Appliances' },
+  { id: 'hair-care', name: 'Hair Care' },
+  { id: 'bathroom', name: 'Bathroom' },
+  { id: 'bedding', name: 'Bedding' },
+  { id: 'automotive', name: 'Automotive' },
+];
 
 const DEMO_PRODUCTS = [
   { query: 'Summer Dress', img: 'https://images.unsplash.com/photo-1777292296715-706dd0b73305?w=120&q=80' },
@@ -57,6 +172,8 @@ export default function LandingPage() {
 
   return (
     <div className="w-full">
+
+
       {/* Hero Section */}
       <section className="bg-white py-16 px-4 md:px-8 lg:px-16">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
@@ -103,7 +220,7 @@ export default function LandingPage() {
 
             <button
               onClick={handleSearch}
-              className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-semibold text-base shadow-md hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-semibold text-base shadow-md transition-all hover:opacity-90"
               style={{ backgroundColor: '#1A7A5E' }}
             >
               <Search size={18} />
@@ -204,26 +321,65 @@ export default function LandingPage() {
       </section>
 
       {/* Categories Section */}
-      <section className="py-14 px-4 bg-white">
+      <section className="py-14 px-4" style={{ backgroundColor: '#F7F5F0' }}>
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Browse by Category</h2>
-          <p className="text-[#888888] mb-8">Explore products from top wholesale stores by category</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {CATEGORIES.slice(1).map(cat => (
+          {/* Section heading with orange dot-grid icon */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="grid grid-cols-3 gap-0.5" style={{ color: '#E8820C' }}>
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="w-2 h-2 rounded-full" style={{ backgroundColor: '#E8820C' }} />
+              ))}
+            </div>
+            <h2 className="text-2xl font-bold text-[#1A1A1A]">Browse by category</h2>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3">
+            {LANDING_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => navigate(`/search?category=${cat.id}`)}
-                className="p-4 rounded-xl border border-[#CCCCCC] hover:border-[#1A7A5E] hover:shadow-md transition-all text-left group"
+                onClick={() => navigate(`/search?q=${encodeURIComponent(cat.name)}`)}
+                className="flex flex-col items-center justify-center gap-2.5 p-4 bg-white rounded-2xl border border-[#E8E8E8] hover:border-[#1A7A5E] hover:shadow-md transition-all group"
+                style={{ minHeight: '100px' }}
               >
-                <p className="font-semibold text-[#1A1A1A] group-hover:text-[#1A7A5E] transition-colors text-sm mb-1">{cat.name}</p>
-                <p className="text-xs text-[#888888]">{cat.count.toLocaleString()} products</p>
+                <div style={{ color: '#1A7A5E' }} className="group-hover:scale-110 transition-transform duration-200">
+                  {CATEGORY_ICONS[cat.name] ?? CATEGORY_ICONS['default']}
+                </div>
+                <span className="text-xs font-medium text-center leading-tight" style={{ color: '#1A5C48' }}>
+                  {cat.name}
+                </span>
               </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Stores */}
+      {/* Sign up free as a retailer — teal banner */}
+      <section className="px-4 py-6" style={{ backgroundColor: '#F7F5F0' }}>
+        <div className="max-w-6xl mx-auto">
+          <div
+            className="flex flex-col sm:flex-row items-center justify-between gap-6 px-8 py-7 rounded-2xl"
+            style={{ backgroundColor: '#1A7A5E' }}
+          >
+            <div className="text-center sm:text-left">
+              <h3 className="text-xl font-bold text-white mb-1.5">Sign up free as a retailer!</h3>
+              <p className="text-sm" style={{ color: '#B2D8CC' }}>
+                Search visually, connect directly with factories, and save favorites to build{' '}
+                <br className="hidden sm:block" />
+                your own supply network without middlemen.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/register')}
+              className="shrink-0 px-6 py-3 bg-white rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm"
+              style={{ color: '#1A1A1A' }}
+            >
+              Create free account
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Stores Section */}
       <section className="py-14 px-4" style={{ backgroundColor: '#F5F5F5' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
@@ -298,25 +454,35 @@ export default function LandingPage() {
       </section>
 
       {/* Become a Supplier CTA */}
-      <section className="py-14 px-4" style={{ backgroundColor: '#1E3A30' }}>
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Are You a Wholesale Supplier?</h2>
-          <p className="text-[#E8F5F0] mb-8 opacity-80">List your store on ChouFliya and reach thousands of retailers across Morocco</p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+      <section className="py-14 px-4" style={{ backgroundColor: '#F7F5F0' }}>
+        <div className="max-w-6xl mx-auto">
+          <div
+            className="flex flex-col sm:flex-row items-center justify-between gap-6 px-8 py-8 rounded-2xl"
+            style={{ backgroundColor: '#1E3A30' }}
+          >
+            <div className="text-center sm:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3" style={{ backgroundColor: '#E8820C', color: 'white' }}>
+                <Star size={12} /> For Wholesale Suppliers
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">List Your Wholesale Store</h2>
+              <p className="text-sm opacity-70" style={{ color: '#E8F5F0' }}>
+                Reach thousands of retailers across Morocco. Free listing, direct contact, no middlemen.
+              </p>
+              <div className="flex gap-5 mt-4 text-sm text-white opacity-60">
+                <span>✓ Free listing</span>
+                <span>✓ Direct WhatsApp contact</span>
+                <span>✓ 163+ supplier stores</span>
+              </div>
+            </div>
             <a
               href={WHATSAPP_BECOME_SUPPLIER_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold text-white hover:opacity-90 transition-opacity"
+              className="shrink-0 flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold text-white hover:opacity-90 transition-opacity shadow-md"
               style={{ backgroundColor: '#E8820C' }}
             >
               <Star size={18} /> Become a Supplier
             </a>
-            <div className="flex gap-6 text-white opacity-70 text-sm">
-              <span>✓ Free listing</span>
-              <span>✓ Direct contact</span>
-              <span>✓ 163+ stores</span>
-            </div>
           </div>
         </div>
       </section>
