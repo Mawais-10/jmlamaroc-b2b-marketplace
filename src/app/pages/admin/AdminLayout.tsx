@@ -19,14 +19,14 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const adminToken = localStorage.getItem('choufliya_admin_token') || localStorage.getItem('choufliya_token');
+  const adminToken = localStorage.getItem('jmlmaroc_admin_token') || localStorage.getItem('jmlmaroc_token');
 
   useEffect(() => {
     if (!adminToken) navigate('/admin/login');
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('choufliya_admin_token');
+    localStorage.removeItem('jmlmaroc_admin_token');
     toast.success('Logged out from admin panel');
     navigate('/admin/login');
   };
@@ -38,18 +38,10 @@ export function AdminLayout() {
     <div className="min-h-screen flex" style={{ backgroundColor: '#0F1F1A' }}>
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-60 flex flex-col transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0`}
-        style={{ backgroundColor: '#1E3A30' }}>
+        style={{ backgroundColor: '#3E1A0A' }}>
         {/* Logo */}
         <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div style={{ backgroundColor: '#1A7A5E' }} className="w-8 h-8 rounded-lg flex items-center justify-center">
-              <Shield size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm">ChouFliya</p>
-              <p className="text-xs" style={{ color: '#E8820C' }}>ADMIN PANEL</p>
-            </div>
-          </div>
+          <img src="/images/Logo.png" alt="Logo" className="w-12 h-12 rounded-lg object-contain" />
         </div>
 
         {/* Nav */}
@@ -62,7 +54,7 @@ export function AdminLayout() {
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive(item.to) ? 'text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
-              style={isActive(item.to) ? { backgroundColor: '#1A7A5E' } : {}}
+              style={isActive(item.to) ? { backgroundColor: '#E85D04' } : {}}
             >
               <item.icon size={17} className="shrink-0" />
               <span>{item.label}</span>
@@ -91,7 +83,7 @@ export function AdminLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="h-14 border-b border-white/5 flex items-center px-6 gap-4 shrink-0" style={{ backgroundColor: '#1E3A30' }}>
+        <div className="h-14 border-b border-white/5 flex items-center px-6 gap-4 shrink-0" style={{ backgroundColor: '#3E1A0A' }}>
           <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden text-white/60 hover:text-white">
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>

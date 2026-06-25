@@ -61,10 +61,10 @@ export default function PendingApprovalPage() {
   };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center p-10" style={{ background: 'linear-gradient(135deg, #0F1F1A 0%, #1E3A30 50%, #0F1F1A 100%)' }}>
+    <div className="min-h-screen  flex items-center justify-center p-10" style={{ background: 'linear-gradient(135deg, #0F1F1A 0%, #3E1A0A 50%, #0F1F1A 100%)' }}>
       {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #1A7A5E, transparent)' }} />
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #E85D04, transparent)' }} />
           <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #E8820C, transparent)' }} />
         </div>
 
@@ -72,18 +72,12 @@ export default function PendingApprovalPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Top accent bar */}
-          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #664520ff, #1A7A5E)' }} />
+          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #664520ff, #E85D04)' }} />
 
           <div className="p-8 sm:p-10 text-center">
             {/* Logo */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <div style={{ backgroundColor: '#1A7A5E' }} className="w-10 h-10 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">C</span>
-              </div>
-              <div className="text-left">
-                <span className="text-[#1A1A1A] text-xl font-bold">ChouFliya</span>
-                <p className="text-xs tracking-widest font-bold" style={{ color: '#E8820C' }}>CHOUFLIYA.MA</p>
-              </div>
+            <div className="flex justify-center mb-8">
+              <img src="/images/Logo.png" alt="Logo" className="w-20 h-20 rounded-2xl object-contain" />
             </div>
 
             {/* Animated icon */}
@@ -111,7 +105,7 @@ export default function PendingApprovalPage() {
                 { icon: CheckCircle2, label: 'Auto Notified', desc: "We'll let you know" },
               ].map(({ icon: Icon, label, desc }) => (
                 <div key={label} className="rounded-xl p-3 border border-[#F0F0F0]" style={{ backgroundColor: '#FAFAFA' }}>
-                  <Icon size={18} className="mx-auto mb-1.5" style={{ color: '#1A7A5E' }} />
+                  <Icon size={18} className="mx-auto mb-1.5" style={{ color: '#E85D04' }} />
                   <p className="text-xs font-semibold text-[#444444]">{label}</p>
                   <p className="text-xs text-[#888888]">{desc}</p>
                 </div>
@@ -124,7 +118,7 @@ export default function PendingApprovalPage() {
                 onClick={handleManualCheck}
                 disabled={checking}
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
               >
                 {checking ? (
                   <><RefreshCw size={16} className="animate-spin" /> Checking status...</>

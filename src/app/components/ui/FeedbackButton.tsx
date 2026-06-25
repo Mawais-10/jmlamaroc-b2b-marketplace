@@ -19,7 +19,7 @@ export function FeedbackButton() {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-full text-white shadow-lg hover:opacity-90 transition-all z-40 text-sm font-medium"
-        style={{ backgroundColor: '#1A7A5E' }}
+        style={{ backgroundColor: '#E85D04' }}
       >
         <MessageSquare size={18} />
         <span>Feedback</span>
@@ -33,7 +33,7 @@ export function FeedbackButton() {
               <X size={20} className="text-[#888888]" />
             </button>
             <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Share Feedback</h2>
-            <p className="text-sm text-[#888888] mb-5">Help us improve ChouFliya for you</p>
+            <p className="text-sm text-[#888888] mb-5">Help us improve JML Maroc for you</p>
 
             {/* Rating */}
             <div className="mb-4">
@@ -67,7 +67,7 @@ export function FeedbackButton() {
               <button onClick={() => setOpen(false)} className="flex-1 py-2.5 border border-[#CCCCCC] rounded-lg text-sm font-medium text-[#444444] hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleSubmit} className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: '#1A7A5E' }}>
+              <button onClick={handleSubmit} className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: '#E85D04' }}>
                 Submit Feedback
               </button>
             </div>

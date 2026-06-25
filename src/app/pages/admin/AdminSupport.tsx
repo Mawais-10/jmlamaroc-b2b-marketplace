@@ -56,7 +56,7 @@ export default function AdminSupport() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1A1A] flex items-center gap-3">
-            <Headphones size={24} className="text-[#1A7A5E]" />
+            <Headphones size={24} className="text-[#E85D04]" />
             Support Tickets
           </h1>
           <p className="text-sm text-[#888888]">{total} tickets found</p>
@@ -79,7 +79,7 @@ export default function AdminSupport() {
           </div>
           <button 
             onClick={fetchTickets}
-            className="px-4 py-2 bg-[#1A7A5E] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-[#E85D04] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Refresh
           </button>
@@ -88,7 +88,7 @@ export default function AdminSupport() {
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-[#CCCCCC]">
-          <Loader2 size={40} className="text-[#1A7A5E] animate-spin mb-4" />
+          <Loader2 size={40} className="text-[#E85D04] animate-spin mb-4" />
           <p className="text-[#888888]">Loading tickets...</p>
         </div>
       ) : tickets.length === 0 ? (
@@ -119,7 +119,7 @@ export default function AdminSupport() {
                         {ticket.user?.avatar ? (
                           <img src={ticket.user.avatar} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center font-bold text-[#1A7A5E]">
+                          <div className="w-full h-full flex items-center justify-center font-bold text-[#E85D04]">
                             {ticket.user?.name?.charAt(0) || '?'}
                           </div>
                         )}
@@ -161,14 +161,14 @@ export default function AdminSupport() {
                         disabled={updatingId === ticket._id}
                         value={ticket.status}
                         onChange={(e) => handleUpdateStatus(ticket._id, e.target.value)}
-                        className="text-xs border border-[#CCCCCC] rounded-lg px-2 py-1 outline-none hover:border-[#1A7A5E] transition-colors disabled:opacity-50"
+                        className="text-xs border border-[#CCCCCC] rounded-lg px-2 py-1 outline-none hover:border-[#E85D04] transition-colors disabled:opacity-50"
                       >
                         <option value="pending">Pending</option>
                         <option value="in-progress">In Progress</option>
                         <option value="resolved">Resolved</option>
                         <option value="closed">Closed</option>
                       </select>
-                      {updatingId === ticket._id && <Loader2 size={14} className="animate-spin text-[#1A7A5E]" />}
+                      {updatingId === ticket._id && <Loader2 size={14} className="animate-spin text-[#E85D04]" />}
                     </div>
                   </td>
                 </tr>

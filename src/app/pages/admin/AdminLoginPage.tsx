@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('choufliya_admin_token');
+    const token = localStorage.getItem('jmlmaroc_admin_token');
     if (token) navigate('/admin');
   }, []);
 
@@ -36,8 +36,8 @@ export default function AdminLoginPage() {
         setLoading(false);
         return;
       }
-      localStorage.setItem('choufliya_admin_token', data.token);
-      toast.success('Welcome to ChouFliya Admin!');
+      localStorage.setItem('jmlmaroc_admin_token', data.token);
+      toast.success('Welcome to JML Maroc Admin!');
       navigate('/admin');
     } catch {
       setError('Cannot connect');
@@ -47,15 +47,11 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center " style={{ backgroundColor: '#1E3A30' }}>
+    <div className="min-h-screen flex items-center justify-center " style={{ backgroundColor: '#3E1A0A' }}>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ backgroundColor: '#1A7A5E' }}>
-            <Shield size={32} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p style={{ color: '#E8820C' }} className="text-sm mt-1">ChouFliya · Wholesale Platform</p>
+          <img src="/images/Logo.png" alt="Logo" className="mx-auto h-24 w-24 object-contain rounded-2xl" />
         </div>
 
         <div className="bg-white rounded-2xl p-8">
@@ -73,8 +69,8 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="admin@choufliya.com"
-                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                placeholder="admin@jmlmaroc.com"
+                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
               />
             </div>
             <div>
@@ -85,7 +81,7 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   placeholder="Admin password"
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                 />
                 <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888888]">
                   {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -96,13 +92,13 @@ export default function AdminLoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3.5 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#1A7A5E' }}
+              style={{ backgroundColor: '#E85D04' }}
             >
               {loading ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Signing in...</> : 'Access Admin Panel'}
             </button>
           </form>
 
-          {/* <div className="mt-5 p-3 rounded-xl text-xs" style={{ backgroundColor: '#F0F9F5', color: '#1A7A5E' }}>
+          {/* <div className="mt-5 p-3 rounded-xl text-xs" style={{ backgroundColor: '#F0F9F5', color: '#E85D04' }}>
             <p className="font-semibold mb-1">⚙️ First time setup:</p>
             <p>Run <code className="bg-white px-1 rounded">cd server && npm install && node seed.js</code> to create the admin account.</p>
           </div> */}

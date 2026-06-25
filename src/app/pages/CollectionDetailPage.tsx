@@ -39,7 +39,7 @@ export default function CollectionDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
-        <Loader2 size={32} className="animate-spin" style={{ color: '#1A7A5E' }} />
+        <Loader2 size={32} className="animate-spin" style={{ color: '#E85D04' }} />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export default function CollectionDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
         <div className="text-center">
           <p className="text-xl font-semibold text-[#444444]">Collection not found</p>
-          <button onClick={() => navigate('/collections')} className="mt-4 text-sm font-medium hover:opacity-80" style={{ color: '#1A7A5E' }}>
+          <button onClick={() => navigate('/collections')} className="mt-4 text-sm font-medium hover:opacity-80" style={{ color: '#E85D04' }}>
             ← Back to collections
           </button>
         </div>
@@ -62,7 +62,7 @@ export default function CollectionDetailPage() {
       {/* Header */}
       <div className="bg-white border-b border-[#CCCCCC] px-6 py-5">
         <div className="max-w-7xl mx-auto">
-          <button onClick={() => navigate('/collections')} className="flex items-center gap-1.5 text-sm text-[#888888] hover:text-[#1A7A5E] transition-colors mb-3">
+          <button onClick={() => navigate('/collections')} className="flex items-center gap-1.5 text-sm text-[#888888] hover:text-[#E85D04] transition-colors mb-3">
             <ArrowLeft size={15} /> Back to Collections
           </button>
           <div className="flex items-center gap-3">
@@ -83,21 +83,21 @@ export default function CollectionDetailPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: '#E8F5F0' }}>
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: '#FFF2EB' }}>
               <ImageIcon size={48} className="text-[#CCCCCC]" />
             </div>
             <h2 className="text-xl font-semibold text-[#444444] mb-2">{isFavCollection ? 'No favorites yet' : 'This collection is empty'}</h2>
             <p className="text-sm text-[#888888] mb-8">
               {isFavCollection ? 'Mark products with a heart to see them here.' : 'Browse products and add them to this collection.'}
             </p>
-            <button onClick={() => navigate('/search')} className="px-6 py-3 rounded-xl text-white font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: '#1A7A5E' }}>
+            <button onClick={() => navigate('/search')} className="px-6 py-3 rounded-xl text-white font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: '#E85D04' }}>
               Browse Products
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map(product => (
-              <div key={product._id} className="bg-white rounded-xl overflow-hidden border border-[#CCCCCC] hover:shadow-lg hover:border-[#1A7A5E] transition-all">
+              <div key={product._id} className="bg-white rounded-xl overflow-hidden border border-[#CCCCCC] hover:shadow-lg hover:border-[#E85D04] transition-all">
                 <div className="relative aspect-square">
                   <img src={product.imageUrl} alt={product.description} className="w-full h-full object-cover" />
                 </div>
@@ -107,13 +107,13 @@ export default function CollectionDetailPage() {
                   </p>
                   <button
                     onClick={() => navigate(`/groups/${product.storeHandle}`)}
-                    className="text-sm font-semibold text-[#1A1A1A] hover:text-[#1A7A5E] truncate block w-full text-left"
+                    className="text-sm font-semibold text-[#1A1A1A] hover:text-[#E85D04] truncate block w-full text-left"
                   >
                     {product.storeName}
                   </button>
                   <p className="text-xs text-[#888888] truncate mt-0.5">{product.description}</p>
                   {product.price
-                    ? <p className="text-sm font-bold mt-1" style={{ color: '#1A7A5E' }}>{product.price} {product.currency}</p>
+                    ? <p className="text-sm font-bold mt-1" style={{ color: '#E85D04' }}>{product.price} {product.currency}</p>
                     : <p className="text-xs text-[#888888] mt-1">Price not listed</p>
                   }
                 </div>

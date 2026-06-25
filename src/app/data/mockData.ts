@@ -1,4 +1,4 @@
-// ChouFliya Mock Data
+// JML Maroc Mock Data
 
 export const IMAGES = {
   fashion1: 'https://images.unsplash.com/photo-1629936060187-181dd6e855ec?w=400&q=80',
@@ -206,7 +206,7 @@ export interface SupportTicket {
   replies: { author: string; message: string; timestamp: string }[];
 }
 
-export const WHATSAPP_BECOME_SUPPLIER_URL = `https://api.whatsapp.com/send?phone=212663196114&text=${encodeURIComponent('مرحباً، أريد إضافة متجر الجملة الخاص بي في منصة ChouFliya.\n\nاسم المتجر: \nقناة التيليجرام: \nالمدينة: \nالفئة: ')}`;
+export const WHATSAPP_BECOME_SUPPLIER_URL = `https://api.whatsapp.com/send?phone=212779137560&text=${encodeURIComponent('مرحباً، أريد إضافة متجر الجملة الخاص بي في منصة jmlamaroc.com.\n\nاسم المتجر: \nقناة التيليجرام: \nالمدينة: \nالفئة: ')}`;
 
 export const DEMO_SEARCH_RESULTS = [
   { storeId: 's1', storeName: 'Jemal Darb Omar', matchScore: 100, price: 40, similarProducts: 15, imageUrl: IMAGES.fashion1 },

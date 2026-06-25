@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { 
-  Search, ImagePlus, Heart, X, ChevronDown, Zap, Loader2, 
+  Search, ImagePlus, Heart, X, ChevronDown, Loader2, 
   Home, Share2, Tag, Copy, LayoutGrid, Store as StoreIcon,
-  CheckCircle2, AlertCircle, ArrowRight, Image as ImageIcon,
-  Send, Shield
+  Send, MoreVertical, Image as ImageIcon
 } from 'lucide-react';
 import { 
   apiGetProducts, apiGetStores, apiCreateSearchSession, apiGetSearchSession,
@@ -12,11 +11,169 @@ import {
 } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
+import { useTranslation } from '../i18n/useTranslation';
+import ProductDetailModal from '../components/ui/ProductDetailModal';
+
+// ─── Product Card (reference-image style) ─────────────────────────────────────
+function ProductCard({
+  product,
+  isFav,
+  onFavorite,
+  onVisualSearch,
+  onClick,
+}: {
+  product: ApiProduct;
+  isFav: boolean;
+  onFavorite: () => void;
+  onVisualSearch: () => void;
+  onClick: () => void;
+}) {
+  const { t, language } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const dateStr = product.createdAt
+    ? new Date(product.createdAt).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      })
+    : '';
+
+  // First letter of store name for avatar fallback
+  const avatarLetter = product.storeName?.charAt(0)?.toUpperCase() || 'S';
+
+  return (
+    <div className="bg-white border border-[#E8E8E8] rounded-sm overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+      {/* ── Image ── */}
+      <div 
+        onClick={onClick}
+        className="relative w-full aspect-square overflow-hidden bg-gray-100 cursor-pointer group"
+      >
+        <img
+          src={product.imageUrl}
+          alt={product.title || product.description}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+        />
+        {/* COD + 24h banner (bottom of image) */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center h-8 overflow-hidden">
+          <div className="bg-[#FF6B00] text-white text-[11px] font-black px-2 h-full flex items-center">
+            COD
+          </div>
+          <div className="bg-[#1DB954] text-white text-[11px] font-bold flex-1 h-full flex items-center px-2 gap-1">
+            <span>
+              {language === 'ar' ? 'شحن خلال ' : language === 'fr' ? 'Expédié sous ' : 'Ship within '}
+              <strong>{language === 'ar' ? '24 ساعة' : language === 'fr' ? '24 heures' : '24 hours'}</strong>
+            </span>
+            <svg className="ml-auto" width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="12" fill="white" opacity="0.25"/>
+              <polygon points="9,7 17,12 9,17" fill="white"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Meta ── */}
+      <div className="px-3 pt-2 pb-0 flex-1 flex flex-col">
+        <div onClick={onClick} className="cursor-pointer flex-1">
+          {/* Date */}
+          <p className="text-[11px] text-[#888] mb-1.5">{dateStr}</p>
+        </div>
+
+        {/* Store row */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Store avatar */}
+            <div className="w-6 h-6 rounded-full bg-[#E85D04] flex items-center justify-center text-white text-[10px] font-bold shrink-0 overflow-hidden">
+              {avatarLetter}
+            </div>
+            <span className="text-[12px] font-semibold text-[#333] truncate max-w-[120px]">
+              {product.storeName}
+            </span>
+          </div>
+          {/* 3-dot menu */}
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v); }}
+              className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <MoreVertical size={14} className="text-[#888]" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-7 bg-white border border-[#E8E8E8] rounded-lg shadow-lg z-50 py-1 min-w-[130px]">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onFavorite(); setMenuOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50"
+                >
+                  {isFav ? (language === 'ar' ? 'إزالة من المفضلة' : language === 'fr' ? 'Retirer des favoris' : 'Remove favorite') : (language === 'ar' ? 'حفظ في المفضلة' : language === 'fr' ? 'Ajouter aux favoris' : 'Save to favorites')}
+                </button>
+                <a
+                  href={`https://t.me/${product.storeHandle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full block text-left px-4 py-2 text-sm text-[#229ED9] hover:bg-gray-50"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                >
+                  {language === 'ar' ? 'افتح في تيليجرام' : language === 'fr' ? 'Ouvrir sur Telegram' : 'Open in Telegram'}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div onClick={onClick} className="cursor-pointer flex-1">
+          {/* Title */}
+          <p className="text-[13px] font-semibold text-[#111] leading-snug line-clamp-2 mb-1">
+            {product.title || product.description}
+          </p>
+
+          {/* Description */}
+          <p className="text-[12px] text-[#666] leading-snug line-clamp-2 mb-2">
+            {product.description}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Action Buttons ── */}
+      <div className="flex items-center border-t border-[#F0F0F0] mt-auto">
+        {/* Favorite */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onFavorite(); }}
+          className="flex-1 flex items-center justify-center py-2.5 hover:bg-[#FFF5F0] transition-colors border-r border-[#F0F0F0]"
+        >
+          <Heart
+            size={17}
+            fill={isFav ? '#EF4444' : 'none'}
+            stroke={isFav ? '#EF4444' : '#999'}
+          />
+        </button>
+        {/* Visual search */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onVisualSearch(); }}
+          className="flex-1 flex items-center justify-center py-2.5 hover:bg-[#F5F5F5] transition-colors border-r border-[#F0F0F0]"
+        >
+          <Search size={17} className="text-[#555]" />
+        </button>
+        {/* Telegram */}
+        <a
+          href={`https://t.me/${product.storeHandle}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 flex items-center justify-center py-2.5 hover:bg-[#EAF6FD] transition-colors"
+        >
+          <Send size={17} className="text-[#229ED9]" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isFavorite, addFavorite, removeFavorite } = useApp();
+  const { t, language } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
@@ -26,18 +183,19 @@ export default function SearchPage() {
   const [priceOnly, setPriceOnly] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(searchParams.get('img') || null);
-  
+
   const [stores, setStores] = useState<ApiStore[]>([]);
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
 
-  // Restore session from ?s= ID
+  // Restore session
   useEffect(() => {
     const sessionId = searchParams.get('s');
     if (sessionId) {
-      const loadSession = async () => {
+      (async () => {
         try {
           const session = await apiGetSearchSession(sessionId);
           const f = session.filters;
@@ -48,18 +206,15 @@ export default function SearchPage() {
           if (f.priceOnly !== undefined) setPriceOnly(f.priceOnly);
           if (f.showDuplicates !== undefined) setShowDuplicates(f.showDuplicates);
           if (f.uploadedImage) setUploadedImage(f.uploadedImage);
-          toast.success('Search feed restored from shared link');
+          toast.success(language === 'ar' ? 'تمت استعادة خلاصة البحث من الرابط المشترك' : language === 'fr' ? 'Flux de recherche restauré à partir du lien partagé' : 'Search feed restored from shared link');
         } catch (err) {
           console.error('Failed to restore session', err);
         }
-      };
-      loadSession();
+      })();
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
+  useEffect(() => { fetchStores(); }, []);
 
   const fetchStores = async () => {
     try {
@@ -70,17 +225,13 @@ export default function SearchPage() {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { 
-        sort: sortBy,
-        q: query,
-        category: category,
-        storeId: selectedStore,
-        priceOnly: priceOnly ? 'true' : 'false'
+      const params: any = {
+        sort: sortBy, q: query, category, storeId: selectedStore,
+        priceOnly: priceOnly ? 'true' : 'false',
       };
-
       const res = await apiGetProducts(params);
       setProducts(res.products);
       setTotal(res.total);
@@ -89,11 +240,9 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadProducts();
   }, [query, category, selectedStore, sortBy, priceOnly]);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
 
   const handleSearch = () => {
     const p = new URLSearchParams(searchParams);
@@ -103,347 +252,233 @@ export default function SearchPage() {
 
   const handleFavorite = (productId: string) => {
     if (!user) { navigate('/login?redirect=/search'); return; }
-    if (isFavorite(productId)) { 
-      removeFavorite(productId); 
-      toast.success('Removed from favorites'); 
-    } else { 
-      addFavorite(productId); 
-      toast.success('Added to favorites!'); 
-    }
+    if (isFavorite(productId)) { removeFavorite(productId); toast.success('Removed from favorites'); }
+    else { addFavorite(productId); toast.success('Added to favorites!'); }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
     setLoading(true);
     setUploadedImage(URL.createObjectURL(file));
-    toast.info('AI is analyzing your image...');
-
+    toast.info(language === 'ar' ? 'يقوم الذكاء الاصطناعي بتحليل صورتك...' : language === 'fr' ? 'L\'IA analyse votre image...' : 'AI is analyzing your image...');
     try {
       const res = await apiSearchVisual(file);
-      if (res.success) {
-        setProducts(res.products);
-        setTotal(res.products.length);
-        toast.success('Visual search complete!');
-      } else {
-        toast.error('Visual search failed');
+      if (res.success) { 
+        setProducts(res.products); 
+        setTotal(res.products.length); 
+        toast.success(language === 'ar' ? 'اكتمل البحث البصري!' : language === 'fr' ? 'Recherche visuelle terminée !' : 'Visual search complete!'); 
       }
-    } catch (err) {
-      console.error('Visual search error:', err);
-      toast.error('Visual search failed');
-    } finally {
-      setLoading(false);
+      else toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
+    } catch { 
+      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed'); 
     }
+    finally { setLoading(false); }
   };
 
   const handleVisualSearch = async (imgUrl: string) => {
     setLoading(true);
     setUploadedImage(imgUrl);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    toast.info('Finding similar products...');
-
+    toast.info(language === 'ar' ? 'البحث عن منتجات مماثلة...' : language === 'fr' ? 'Recherche de produits similaires...' : 'Finding similar products...');
     try {
       const res = await apiSearchVisualUrl(imgUrl);
-      if (res.success) {
-        setProducts(res.products);
-        setTotal(res.products.length);
-        toast.success('Visual search complete!');
-      } else {
-        toast.error('Visual search failed');
+      if (res.success) { 
+        setProducts(res.products); 
+        setTotal(res.products.length); 
+        toast.success(language === 'ar' ? 'اكتمل البحث البصري!' : language === 'fr' ? 'Recherche visuelle terminée !' : 'Visual search complete!'); 
       }
-    } catch (err) {
-      console.error('Visual search error:', err);
-      toast.error('Visual search failed');
-    } finally {
-      setLoading(false);
+      else toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
+    } catch { 
+      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed'); 
     }
+    finally { setLoading(false); }
   };
 
   const handleShare = async () => {
     try {
-      const { sessionId } = await apiCreateSearchSession({
-        q: query,
-        category,
-        storeId: selectedStore,
-        sortBy,
-        priceOnly,
-        showDuplicates,
-        uploadedImage
-      });
-      
+      const { sessionId } = await apiCreateSearchSession({ q: query, category, storeId: selectedStore, sortBy, priceOnly, showDuplicates, uploadedImage });
       const shareUrl = `${window.location.origin}${window.location.pathname}?s=${sessionId}`;
       navigator.clipboard.writeText(shareUrl);
-      toast.success('Professional search link generated!', {
-        description: 'The link has been copied to your clipboard.'
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate share link');
+      toast.success(language === 'ar' ? 'تم نسخ الرابط إلى الحافظة!' : language === 'fr' ? 'Lien copié dans le presse-papiers !' : 'Link copied to clipboard!');
+    } catch { 
+      toast.error(language === 'ar' ? 'فشل في إنشاء رابط المشاركة' : language === 'fr' ? 'Échec de la génération du lien de partage' : 'Failed to generate share link'); 
     }
   };
 
-  const selectedStoreName = stores.find(s => s._id === selectedStore)?.name || 'All stores';
+  const selectedStoreName = stores.find(s => s._id === selectedStore)?.name || (language === 'ar' ? 'جميع المتاجر' : language === 'fr' ? 'Toutes les boutiques' : 'All stores');
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Top Search Status Bar */}
-      <div className="max-w-7xl mx-auto px-6 pt-8 pb-4">
-        <div className="bg-white rounded-3xl border border-[#E2E8F0] p-3 shadow-sm flex items-center gap-4">
-          <button 
+    <div className="min-h-screen bg-[#F5F5F5]">
+      {/* ── Top search bar ── */}
+      <div className="bg-white border-b border-[#E8E8E8] px-4 py-3 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <button
             onClick={() => navigate('/')}
-            className="w-12 h-12 bg-[#F1F5F9] rounded-2xl flex items-center justify-center text-[#64748B] hover:bg-[#E2E8F0] transition-colors"
+            className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center text-[#64748B] hover:bg-gray-200 transition-colors shrink-0"
           >
-            <Home size={22} />
+            <Home size={18} />
           </button>
-          
-          <div className="w-12 h-12 relative group">
+
+          {/* Image upload thumbnail */}
+          <div className="w-9 h-9 shrink-0 relative">
             {uploadedImage ? (
               <div className="w-full h-full relative">
-                <img src={uploadedImage} className="w-full h-full rounded-2xl object-cover" alt="Search Target" />
-                <button 
+                <img src={uploadedImage} className="w-full h-full rounded-lg object-cover" alt="Search" />
+                <button
                   onClick={() => setUploadedImage(null)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-[#EF4444] border-2 border-white rounded-full flex items-center justify-center"
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center"
                 >
-                  <X size={10} className="text-white" />
+                  <X size={8} className="text-white" />
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => fileRef.current?.click()}
-                className="w-full h-full bg-[#F1F5F9] rounded-2xl flex items-center justify-center text-[#94A3B8] hover:bg-[#E2E8F0] transition-colors border-2 border-dashed border-[#CBD5E1]"
+                className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-200 border border-dashed border-gray-300"
               >
-                <ImagePlus size={20} />
+                <ImagePlus size={16} />
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
           </div>
 
-          <div className="flex-1 bg-[#F1F5F9]/50 border border-[#E2E8F0] rounded-2xl px-5 py-3 flex items-center gap-3">
-            <ImageIcon size={18} className={uploadedImage ? 'text-[#1A7A5E]' : 'text-[#94A3B8]'} />
-            <span className={`text-sm font-medium ${uploadedImage ? 'text-[#1A7A5E]' : 'text-[#64748B]'}`}>
-              {uploadedImage ? 'Image search mode' : 'Text search mode'}
-            </span>
-            <span className="text-sm text-[#94A3B8]">
-              {uploadedImage ? ' - Remove image to search by text' : ' - Type keywords or upload an image'}
-            </span>
+          {/* Text input */}
+          <div className="flex-1 flex items-center bg-gray-100 border border-[#E2E8F0] rounded-lg px-3 py-2 gap-2">
+            <Search size={16} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              placeholder={t.search.placeholder}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              className="bg-transparent outline-none text-sm flex-1 text-[#333] placeholder:text-gray-400"
+            />
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <Search size={18} className="text-[#94A3B8]" />
-              <input 
-                type="text" 
-                placeholder="Search keywords..." 
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                className="bg-transparent outline-none text-sm w-40"
-              />
-            </div>
-            <button 
-              onClick={handleSearch}
-              className="bg-[#1A7A5E] text-white px-8 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <Search size={18} />
-              Search
-            </button>
-          </div>
+          <button
+            onClick={handleSearch}
+            className="bg-[#E85D04] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity shrink-0"
+          >
+            {t.nav.search}
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm text-[#555] hover:bg-gray-50 shrink-0"
+          >
+            <Share2 size={15} />
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pb-20">
-        {/* Results Info */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] px-6 py-4 mb-6 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3 text-[#1E293B]">
-            <ImageIcon size={20} className="text-[#1A7A5E]" />
-            <span className="text-lg font-bold">{total} results</span>
-          </div>
-          <button 
-            onClick={handleShare}
-            className="flex items-center gap-2 px-4 py-2 bg-[#F1F5F9] text-[#64748B] text-sm font-bold rounded-xl hover:bg-[#E2E8F0] transition-colors"
-          >
-            <Share2 size={16} />
-            Share
-          </button>
-        </div>
-
-        {/* Filter Toolbar */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-1 mb-8 shadow-sm flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#F1F5F9]">
-          {/* Store Filter */}
-          <div className="flex-1 p-3">
-            <label className="block text-[10px] font-bold text-[#94A3B8] uppercase px-3 mb-1 flex items-center gap-1.5">
-              <StoreIcon size={12} /> Store
-            </label>
-            <div className="relative">
-              <button 
-                onClick={() => setShowStoreDropdown(!showStoreDropdown)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#64748B] hover:border-[#1A7A5E] transition-all"
-              >
-                <span className="truncate">{selectedStoreName}</span>
-                <ChevronDown size={16} className={`transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showStoreDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl z-50 max-h-64 overflow-y-auto py-2">
-                  <button 
-                    onClick={() => { setSelectedStore(''); setShowStoreDropdown(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-[#1E293B]"
-                  >
-                    <StoreIcon size={14} className="text-[#94A3B8]" />
-                    All stores
+      <div className="max-w-7xl mx-auto px-4 py-5">
+        {/* ── Filters bar ── */}
+        <div className="bg-white border border-[#E8E8E8] rounded-lg px-4 py-3 mb-5 flex flex-wrap items-center gap-3">
+          {/* Store filter */}
+          <div className="relative">
+            <button
+              onClick={() => setShowStoreDropdown(!showStoreDropdown)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-[#E2E8F0] rounded-lg text-sm text-[#555] hover:border-[#E85D04] transition-colors"
+            >
+              <StoreIcon size={14} className="text-[#E85D04]" />
+              <span className="max-w-[120px] truncate">{selectedStoreName}</span>
+              <ChevronDown size={13} className={`text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showStoreDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto py-1 min-w-[180px]">
+                <button onClick={() => { setSelectedStore(''); setShowStoreDropdown(false); }} className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50">
+                  {language === 'ar' ? 'جميع المتاجر' : language === 'fr' ? 'Toutes les boutiques' : 'All stores'}
+                </button>
+                {stores.map(s => (
+                  <button key={s._id} onClick={() => { setSelectedStore(s._id); setShowStoreDropdown(false); }} className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50">
+                    {s.name}
                   </button>
-                  {stores.map(s => (
-                    <button 
-                      key={s._id}
-                      onClick={() => { setSelectedStore(s._id); setShowStoreDropdown(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-[#1E293B]"
-                    >
-                      <StoreIcon size={14} className="text-[#94A3B8]" />
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Sort Filter */}
-          <div className="flex-1 p-3">
-            <label className="block text-[10px] font-bold text-[#94A3B8] uppercase px-3 mb-1 flex items-center gap-1.5">
-              <LayoutGrid size={12} /> Sort By
-            </label>
-            <div className="relative">
-              <select 
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                className="w-full appearance-none px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#64748B] focus:outline-none focus:border-[#1A7A5E] cursor-pointer"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="priceAsc">Price: Low to High</option>
-                <option value="priceDesc">Price: High to Low</option>
-                <option value="trending">Most popular</option>
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Duplicates Toggle */}
-          <div className="flex-1 p-3">
-            <label className="block text-[10px] font-bold text-[#94A3B8] uppercase px-3 mb-1 flex items-center gap-1.5">
-              <Copy size={12} /> Show Duplicates
-            </label>
-            <button 
-              onClick={() => setShowDuplicates(!showDuplicates)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium transition-all"
+          {/* Sort */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="appearance-none pl-3 pr-7 py-1.5 bg-gray-50 border border-[#E2E8F0] rounded-lg text-sm text-[#555] focus:outline-none focus:border-[#E85D04] cursor-pointer"
             >
-              <Copy size={16} className={showDuplicates ? 'text-[#1A7A5E]' : 'text-[#94A3B8]'} />
-              <span className={showDuplicates ? 'text-[#1E293B]' : 'text-[#94A3B8]'}>
-                {showDuplicates ? 'On' : 'Off'}
-              </span>
-            </button>
+              <option value="newest">{language === 'ar' ? 'الأحدث' : language === 'fr' ? 'Plus récent' : 'Newest'}</option>
+              <option value="oldest">{language === 'ar' ? 'الأقدم' : language === 'fr' ? 'Plus ancien' : 'Oldest'}</option>
+              <option value="priceAsc">{language === 'ar' ? 'السعر ↑' : language === 'fr' ? 'Prix ↑' : 'Price ↑'}</option>
+              <option value="priceDesc">{language === 'ar' ? 'السعر ↓' : language === 'fr' ? 'Prix ↓' : 'Price ↓'}</option>
+              <option value="trending">{language === 'ar' ? 'شائع' : language === 'fr' ? 'Populaire' : 'Popular'}</option>
+            </select>
+            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
 
-          {/* Price Only Toggle */}
-          <div className="flex-1 p-3">
-            <label className="block text-[10px] font-bold text-[#94A3B8] uppercase px-3 mb-1 flex items-center gap-1.5">
-              <Tag size={12} /> With Price Only
-            </label>
-            <button 
-              onClick={() => setPriceOnly(!priceOnly)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium transition-all"
-            >
-              <Tag size={16} className={priceOnly ? 'text-[#1A7A5E]' : 'text-[#94A3B8]'} />
-              <span className={priceOnly ? 'text-[#1E293B]' : 'text-[#94A3B8]'}>
-                {priceOnly ? 'On' : 'Off'}
-              </span>
-            </button>
-          </div>
+          {/* Price only */}
+          <button
+            onClick={() => setPriceOnly(!priceOnly)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm transition-colors ${priceOnly ? 'bg-[#FFF0E6] border-[#E85D04] text-[#E85D04]' : 'bg-gray-50 border-[#E2E8F0] text-[#555]'}`}
+          >
+            <Tag size={13} />
+            {language === 'ar' ? 'بالسعر فقط' : language === 'fr' ? 'Avec Prix' : 'With Price'}
+          </button>
+
+          {/* Duplicates */}
+          <button
+            onClick={() => setShowDuplicates(!showDuplicates)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm transition-colors ${showDuplicates ? 'bg-[#FFF0E6] border-[#E85D04] text-[#E85D04]' : 'bg-gray-50 border-[#E2E8F0] text-[#555]'}`}
+          >
+            <Copy size={13} />
+            {language === 'ar' ? 'تكرار' : language === 'fr' ? 'Doubles' : 'Duplicates'}
+          </button>
+
+          <span className="ml-auto text-sm text-[#888]">
+            {total.toLocaleString()} {language === 'ar' ? 'نتائج' : language === 'fr' ? 'résultats' : 'results'}
+          </span>
         </div>
 
-        {/* Product Grid */}
+        {/* ── Product grid ── */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
-            <Loader2 size={40} className="text-[#1A7A5E] animate-spin mb-4" />
-            <p className="text-[#64748B] font-medium">Scanning supplier catalogs...</p>
+            <Loader2 size={36} className="text-[#E85D04] animate-spin mb-3" />
+            <p className="text-[#888] text-sm">
+              {language === 'ar' ? 'جاري فحص كتالوجات الموردين...' : language === 'fr' ? 'Analyse des catalogues grossistes...' : 'Scanning supplier catalogs...'}
+            </p>
           </div>
         ) : products.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-[#E2E8F0] p-20 text-center shadow-sm">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search size={40} className="text-[#CBD5E1]" />
-            </div>
-            <h3 className="text-xl font-bold text-[#1E293B] mb-2">No products found</h3>
-            <p className="text-[#64748B]">Try a different keyword or filter.</p>
+          <div className="bg-white rounded-xl border border-[#E8E8E8] p-20 text-center">
+            <Search size={40} className="mx-auto mb-4 text-[#CCC]" />
+            <h3 className="text-lg font-bold text-[#333] mb-2">{t.search.noProducts}</h3>
+            <p className="text-sm text-[#888]">{t.search.tryDifferent}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map(product => (
-              <div key={product._id} className="bg-white rounded-3xl border border-[#E2E8F0] overflow-hidden hover:shadow-2xl transition-all group shadow-sm flex flex-col h-full">
-                <div className="relative aspect-square overflow-hidden bg-gray-50">
-                  <img src={product.imageUrl} alt={product.description} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleFavorite(product._id); }}
-                    className="absolute top-4 right-4 p-2.5 rounded-2xl bg-white/90 backdrop-blur-sm shadow-sm hover:scale-110 transition-all z-10"
-                  >
-                    <Heart size={18} fill={isFavorite(product._id) ? '#EF4444' : 'none'} stroke={isFavorite(product._id) ? '#EF4444' : '#64748B'} />
-                  </button>
-                  {product.price && (
-                    <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-[#EF4444] text-white text-[10px] font-bold rounded-xl shadow-lg uppercase">
-                      Best Price
-                    </div>
-                  )}
-                </div>
-                <div className="p-5 flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <button 
-                      onClick={() => navigate(`/groups/${product.storeHandle}`)}
-                      className="text-xs font-bold text-[#64748B] hover:text-[#1A7A5E] transition-colors"
-                    >
-                      @{product.storeHandle}
-                    </button>
-                    <span className="text-[10px] text-[#94A3B8]">
-                      {new Date(product.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <h4 className="text-sm font-bold text-[#1E293B] line-clamp-1 mb-2 group-hover:text-[#1A7A5E] transition-colors">
-                    {product.storeName}
-                  </h4>
-                  <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed">
-                    {product.description || product.title}
-                  </p>
-                  
-                  {product.price ? (
-                    <p className="text-base font-bold text-[#1A7A5E] mt-3">{product.price} {product.currency}</p>
-                  ) : (
-                    <p className="text-xs text-[#94A3B8] font-medium italic mt-3">Price on request</p>
-                  )}
-                </div>
-
-                {/* Card Footer with Search and Telegram */}
-                <div className="grid grid-cols-2 border-t border-[#F1F5F9] divide-x divide-[#F1F5F9]">
-                  <button 
-                    onClick={() => handleVisualSearch(product.imageUrl)}
-                    className="flex items-center justify-center py-3.5 hover:bg-[#F8FAFC] transition-colors group/btn"
-                  >
-                    <Search size={18} className="text-[#1A7A5E] group-hover/btn:scale-110 transition-transform" />
-                  </button>
-                  <a 
-                    href={`https://t.me/${product.storeHandle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center py-3.5 hover:bg-[#F8FAFC] transition-colors group/btn"
-                  >
-                    <Send size={18} className="text-[#229ED9] group-hover/btn:scale-110 transition-transform" />
-                  </a>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {products.map((product, idx) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                isFav={isFavorite(product._id)}
+                onFavorite={() => handleFavorite(product._id)}
+                onVisualSearch={() => handleVisualSearch(product.imageUrl)}
+                onClick={() => setSelectedProductIndex(idx)}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Product detail modal */}
+      {selectedProductIndex !== null && (
+        <ProductDetailModal
+          products={products}
+          activeIndex={selectedProductIndex}
+          onClose={() => setSelectedProductIndex(null)}
+          onSelectProduct={(index) => setSelectedProductIndex(index)}
+          onVisualSearch={(prod) => {
+            setSelectedProductIndex(null);
+            handleVisualSearch(prod.imageUrl);
+          }}
+        />
+      )}
     </div>
   );
 }
-

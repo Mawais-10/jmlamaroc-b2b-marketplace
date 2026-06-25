@@ -12,12 +12,14 @@ import {
 } from '../services/api';
 import { CATEGORIES } from '../data/mockData';
 import { toast } from 'sonner';
+import { useTranslation } from '../i18n/useTranslation';
 
 const MOROCCAN_CITIES = ['Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tangier', 'Agadir', 'Meknes', 'Oujda', 'Kenitra', 'Tetouan', 'Safi', 'Other'];
 
 export default function SupplierDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
   const [tab, setTab] = useState<'overview' | 'store' | 'products' | 'add-product'>('overview');
 
   const [store, setStore] = useState<ApiStore | null>(null);
@@ -50,7 +52,7 @@ export default function SupplierDashboard() {
       setStoreForm(storeRes.store);
       setProducts(productsRes.products);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to load store data');
+      toast.error(err.message || (language === 'ar' ? 'فشل تحميل بيانات المتجر' : language === 'fr' ? 'Échec du chargement des données du magasin' : 'Failed to load store data'));
     } finally {
       setLoadingStore(false);
     }
@@ -68,9 +70,9 @@ export default function SupplierDashboard() {
         whatsappNumber: storeForm.whatsappNumber,
       });
       setStore(res.store);
-      toast.success('Store updated successfully!');
+      toast.success(language === 'ar' ? 'تم تحديث المتجر بنجاح!' : language === 'fr' ? 'Magasin mis à jour avec succès !' : 'Store updated successfully!');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update store');
+      toast.error(err.message || (language === 'ar' ? 'فشل تحديث المتجر' : language === 'fr' ? 'Échec de la mise à jour du magasin' : 'Failed to update store'));
     } finally {
       setSavingStore(false);
     }
@@ -80,14 +82,14 @@ export default function SupplierDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      toast.loading('Uploading avatar...');
+      toast.loading(language === 'ar' ? 'جاري رفع الصورة الشخصية...' : language === 'fr' ? 'Téléchargement de l\'avatar...' : 'Uploading avatar...');
       const res = await apiUploadStoreAvatar(file);
       setStore(res.store);
       toast.dismiss();
-      toast.success('Avatar uploaded!');
+      toast.success(language === 'ar' ? 'تم رفع الصورة الشخصية!' : language === 'fr' ? 'Avatar téléchargé !' : 'Avatar uploaded!');
     } catch {
       toast.dismiss();
-      toast.error('Failed to upload avatar');
+      toast.error(language === 'ar' ? 'فشل رفع الصورة الشخصية' : language === 'fr' ? 'Échec du téléchargement de l\'avatar' : 'Failed to upload avatar');
     }
   };
 
@@ -95,14 +97,14 @@ export default function SupplierDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      toast.loading('Uploading cover image...');
+      toast.loading(language === 'ar' ? 'جاري رفع غلاف الصفحة...' : language === 'fr' ? 'Téléchargement de la couverture...' : 'Uploading cover image...');
       const res = await apiUploadStoreCover(file);
       setStore(res.store);
       toast.dismiss();
-      toast.success('Cover image uploaded!');
+      toast.success(language === 'ar' ? 'تم رفع الغلاف بنجاح!' : language === 'fr' ? 'Image de couverture téléchargée !' : 'Cover image uploaded!');
     } catch {
       toast.dismiss();
-      toast.error('Failed to upload cover image');
+      toast.error(language === 'ar' ? 'فشل رفع غلاف الصفحة' : language === 'fr' ? 'Échec du téléchargement de la couverture' : 'Failed to upload cover image');
     }
   };
 
@@ -110,9 +112,9 @@ export default function SupplierDashboard() {
     try {
       const res = await apiRemoveStoreCover(index);
       setStore(res.store);
-      toast.success('Cover image removed');
+      toast.success(language === 'ar' ? 'تمت إزالة الغلاف' : language === 'fr' ? 'Image de couverture retirée' : 'Cover image removed');
     } catch {
-      toast.error('Failed to remove cover image');
+      toast.error(language === 'ar' ? 'فشل إزالة الغلاف' : language === 'fr' ? 'Échec du retrait de la couverture' : 'Failed to remove cover image');
     }
   };
 
@@ -125,8 +127,8 @@ export default function SupplierDashboard() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productForm.imageFile) { toast.error('Product image is required'); return; }
-    if (!productForm.category) { toast.error('Category is required'); return; }
+    if (!productForm.imageFile) { toast.error(language === 'ar' ? 'صورة المنتج مطلوبة' : language === 'fr' ? 'Image du produit requise' : 'Product image is required'); return; }
+    if (!productForm.category) { toast.error(language === 'ar' ? 'الفئة مطلوبة' : language === 'fr' ? 'Catégorie requise' : 'Category is required'); return; }
 
     setAddingProduct(true);
     try {
@@ -144,24 +146,24 @@ export default function SupplierDashboard() {
       if (res.success) {
         setProducts(prev => [res.product, ...prev]);
         setProductForm({ description: '', title: '', price: '', currency: 'MAD', category: '', subcategory: '', tags: '', imageFile: null, imagePreview: '' });
-        toast.success('Product added and uploaded to Cloudinary!');
+        toast.success(language === 'ar' ? 'تمت إضافة المنتج ورفعه بنجاح!' : language === 'fr' ? 'Produit ajouté et téléchargé avec succès !' : 'Product added and uploaded to Cloudinary!');
         setTab('products');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add product');
+      toast.error(err.message || (language === 'ar' ? 'فشل إضافة المنتج' : language === 'fr' ? 'Échec de l\'ajout du produit' : 'Failed to add product'));
     } finally {
       setAddingProduct(false);
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Delete this product?')) return;
+    if (!confirm(language === 'ar' ? 'حذف هذا المنتج؟' : language === 'fr' ? 'Supprimer ce produit ?' : 'Delete this product?')) return;
     try {
       await apiDeleteProduct(id);
       setProducts(prev => prev.filter(p => p._id !== id));
-      toast.success('Product deleted');
+      toast.success(language === 'ar' ? 'تم حذف المنتج' : language === 'fr' ? 'Produit supprimé' : 'Product deleted');
     } catch {
-      toast.error('Failed to delete product');
+      toast.error(language === 'ar' ? 'فشل حذف المنتج' : language === 'fr' ? 'Échec de la suppression du produit' : 'Failed to delete product');
     }
   };
 
@@ -169,16 +171,22 @@ export default function SupplierDashboard() {
     try {
       const res = await apiUpdateProduct(product._id, { isActive: !product.isActive });
       setProducts(prev => prev.map(p => p._id === product._id ? res.product : p));
-      toast.success(`Product ${res.product.isActive ? 'activated' : 'deactivated'}`);
+      toast.success(
+        language === 'ar' 
+          ? `تم ${res.product.isActive ? 'تنشيط' : 'إلغاء تنشيط'} المنتج` 
+          : language === 'fr'
+            ? `Produit ${res.product.isActive ? 'activé' : 'désactivé'}`
+            : `Product ${res.product.isActive ? 'activated' : 'deactivated'}`
+      );
     } catch {
-      toast.error('Failed to update product');
+      toast.error(language === 'ar' ? 'فشل تحديث المنتج' : language === 'fr' ? 'Échec de la mise à jour du produit' : 'Failed to update product');
     }
   };
 
   if (loadingStore) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -188,18 +196,22 @@ export default function SupplierDashboard() {
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-6">
         <div className="text-center">
           <AlertCircle size={48} className="mx-auto mb-4 text-[#CCCCCC]" />
-          <p className="text-lg font-semibold text-[#444444]">Store not found</p>
-          <p className="text-sm text-[#888888]">Please contact support</p>
+          <p className="text-lg font-semibold text-[#444444]">
+            {language === 'ar' ? 'المتجر غير موجود' : language === 'fr' ? 'Magasin non trouvé' : 'Store not found'}
+          </p>
+          <p className="text-sm text-[#888888]">
+            {language === 'ar' ? 'يرجى الاتصال بالدعم الفني' : language === 'fr' ? 'Veuillez contacter le support' : 'Please contact support'}
+          </p>
         </div>
       </div>
     );
   }
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: Store },
-    { id: 'store', label: 'Store Profile', icon: Edit },
-    { id: 'products', label: `Products (${products.length})`, icon: Package },
-    { id: 'add-product', label: 'Add Product', icon: Plus },
+    { id: 'overview', label: language === 'ar' ? 'نظرة عامة' : language === 'fr' ? 'Aperçu' : 'Overview', icon: Store },
+    { id: 'store', label: language === 'ar' ? 'ملف المتجر' : language === 'fr' ? 'Profil du magasin' : 'Store Profile', icon: Edit },
+    { id: 'products', label: language === 'ar' ? `المنتجات (${products.length})` : language === 'fr' ? `Produits (${products.length})` : `Products (${products.length})`, icon: Package },
+    { id: 'add-product', label: language === 'ar' ? 'إضافة منتج' : language === 'fr' ? 'Ajouter un produit' : 'Add Product', icon: Plus },
   ];
 
   return (
@@ -211,22 +223,22 @@ export default function SupplierDashboard() {
             {store.avatar ? (
               <img src={store.avatar} alt={store.name} className="w-10 h-10 rounded-lg object-cover" />
             ) : (
-              <div style={{ backgroundColor: '#1A7A5E' }} className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold">
+              <div style={{ backgroundColor: '#E85D04' }} className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold">
                 {store.name.charAt(0)}
               </div>
             )}
             <div>
               <h1 className="text-lg font-bold text-[#1A1A1A]">{store.name}</h1>
-              <p className="text-xs text-[#888888]">@{store.handle} · Supplier Dashboard</p>
+              <p className="text-xs text-[#888888]">@{store.handle} · {language === 'ar' ? 'لوحة تحكم المورد' : language === 'fr' ? 'Tableau de bord du fournisseur' : 'Supplier Dashboard'}</p>
             </div>
           </div>
           <a
             href={`/groups/${store.handle}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#CCCCCC] text-sm text-[#444444] hover:border-[#1A7A5E] hover:text-[#1A7A5E] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#CCCCCC] text-sm text-[#444444] hover:border-[#E85D04] hover:text-[#E85D04] transition-colors"
           >
-            <Eye size={15} /> View Store
+            <Eye size={15} /> {language === 'ar' ? 'عرض المتجر' : language === 'fr' ? 'Voir le magasin' : 'View Store'}
           </a>
         </div>
       </div>
@@ -240,7 +252,7 @@ export default function SupplierDashboard() {
               onClick={() => setTab(t.id as any)}
               className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 tab === t.id
-                  ? 'border-[#1A7A5E] text-[#1A7A5E]'
+                  ? 'border-[#E85D04] text-[#E85D04]'
                   : 'border-transparent text-[#888888] hover:text-[#1A1A1A]'
               }`}
             >
@@ -259,10 +271,16 @@ export default function SupplierDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: 'Total Products', value: products.length, color: '#1A7A5E' },
-                { label: 'Active Products', value: products.filter(p => p.isActive).length, color: '#1A7A5E' },
-                { label: 'Followers', value: store.followerCount, color: '#E8820C' },
-                { label: 'Store Status', value: store.isApproved ? 'Active' : 'Paused', color: store.isApproved ? '#1A7A5E' : '#888888' },
+                { label: language === 'ar' ? 'إجمالي المنتجات' : language === 'fr' ? 'Total des produits' : 'Total Products', value: products.length, color: '#E85D04' },
+                { label: language === 'ar' ? 'المنتجات النشطة' : language === 'fr' ? 'Produits actifs' : 'Active Products', value: products.filter(p => p.isActive).length, color: '#E85D04' },
+                { label: language === 'ar' ? 'المتابعون' : language === 'fr' ? 'Abonnés' : 'Followers', value: store.followerCount, color: '#E8820C' },
+                {
+                  label: language === 'ar' ? 'حالة المتجر' : language === 'fr' ? 'Statut du magasin' : 'Store Status',
+                  value: store.isApproved
+                    ? (language === 'ar' ? 'نشط' : language === 'fr' ? 'Actif' : 'Active')
+                    : (language === 'ar' ? 'متوقف مؤقتاً' : language === 'fr' ? 'En pause' : 'Paused'),
+                  color: store.isApproved ? '#E85D04' : '#888888'
+                },
               ].map(stat => (
                 <div key={stat.label} className="bg-white rounded-xl border border-[#CCCCCC] p-4">
                   <p className="text-xs text-[#888888] mb-1">{stat.label}</p>
@@ -279,8 +297,10 @@ export default function SupplierDashboard() {
                     <img key={i} src={img.url} alt="" className="w-full h-full object-cover" />
                   ))
                 ) : (
-                  <div className="col-span-4 flex items-center justify-center" style={{ backgroundColor: '#E8F5F0' }}>
-                    <p className="text-[#1A7A5E] text-sm font-medium">Add cover images →</p>
+                  <div className="col-span-4 flex items-center justify-center" style={{ backgroundColor: '#FFF2EB' }}>
+                    <p className="text-[#E85D04] text-sm font-medium">
+                      {language === 'ar' ? 'أضف صور غلاف ←' : language === 'fr' ? 'Ajouter des images de couverture →' : 'Add cover images →'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -289,7 +309,7 @@ export default function SupplierDashboard() {
                   {store.avatar ? (
                     <img src={store.avatar} alt="" className="w-12 h-12 rounded-xl object-cover -mt-8 border-2 border-white shadow-md" />
                   ) : (
-                    <div style={{ backgroundColor: '#1A7A5E' }} className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold -mt-8 border-2 border-white shadow-md">
+                    <div style={{ backgroundColor: '#E85D04' }} className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold -mt-8 border-2 border-white shadow-md">
                       {store.name.charAt(0)}
                     </div>
                   )}
@@ -298,7 +318,9 @@ export default function SupplierDashboard() {
                     <p className="text-xs text-[#888888]">@{store.handle} · {store.city}</p>
                   </div>
                 </div>
-                <p className="text-sm text-[#444444]">{store.description || 'No description yet'}</p>
+                <p className="text-sm text-[#444444]">
+                  {store.description || (language === 'ar' ? 'لا يوجد وصف بعد' : language === 'fr' ? 'Pas encore de description' : 'No description yet')}
+                </p>
                 <div className="flex gap-2 mt-3">
                   {store.telegramLink && (
                     <span className="text-xs px-2 py-1 rounded text-white" style={{ backgroundColor: '#229ED9' }}>Telegram ✓</span>
@@ -313,23 +335,23 @@ export default function SupplierDashboard() {
             {/* Quick actions */}
             <div className="grid sm:grid-cols-2 gap-4">
               <button onClick={() => setTab('add-product')}
-                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors text-left">
-                <div style={{ backgroundColor: '#E8F5F0' }} className="p-2 rounded-lg">
-                  <Plus size={20} style={{ color: '#1A7A5E' }} />
+                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#CCCCCC] hover:border-[#E85D04] transition-colors text-left">
+                <div style={{ backgroundColor: '#FFF2EB' }} className="p-2 rounded-lg">
+                  <Plus size={20} style={{ color: '#E85D04' }} />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#1A1A1A]">Add New Product</p>
-                  <p className="text-xs text-[#888888]">Upload product image to Cloudinary</p>
+                  <p className="font-semibold text-[#1A1A1A]">{language === 'ar' ? 'إضافة منتج جديد' : language === 'fr' ? 'Ajouter un nouveau produit' : 'Add New Product'}</p>
+                  <p className="text-xs text-[#888888]">{language === 'ar' ? 'تحميل صورة المنتج إلى Cloudinary' : language === 'fr' ? "Télécharger l'image du produit vers Cloudinary" : 'Upload product image to Cloudinary'}</p>
                 </div>
               </button>
               <button onClick={() => setTab('store')}
-                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors text-left">
-                <div style={{ backgroundColor: '#E8F5F0' }} className="p-2 rounded-lg">
-                  <Edit size={20} style={{ color: '#1A7A5E' }} />
+                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#CCCCCC] hover:border-[#E85D04] transition-colors text-left">
+                <div style={{ backgroundColor: '#FFF2EB' }} className="p-2 rounded-lg">
+                  <Edit size={20} style={{ color: '#E85D04' }} />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#1A1A1A]">Edit Store Profile</p>
-                  <p className="text-xs text-[#888888]">Update info, contacts, cover images</p>
+                  <p className="font-semibold text-[#1A1A1A]">{language === 'ar' ? 'تعديل ملف المتجر' : language === 'fr' ? 'Modifier le profil du magasin' : 'Edit Store Profile'}</p>
+                  <p className="text-xs text-[#888888]">{language === 'ar' ? 'تحديث المعلومات، جهات الاتصال، صور الغلاف' : language === 'fr' ? 'Mettre à jour les infos, contacts, images' : 'Update info, contacts, cover images'}</p>
                 </div>
               </button>
             </div>
@@ -341,25 +363,29 @@ export default function SupplierDashboard() {
           <div className="space-y-5">
             {/* Avatar & Cover */}
             <div className="bg-white rounded-xl border border-[#CCCCCC] p-5">
-              <h3 className="font-semibold text-[#1A1A1A] mb-4">Store Images</h3>
+              <h3 className="font-semibold text-[#1A1A1A] mb-4">
+                {language === 'ar' ? 'صور المتجر' : language === 'fr' ? 'Images du magasin' : 'Store Images'}
+              </h3>
 
               {/* Avatar */}
               <div className="flex items-center gap-4 mb-5">
                 {store.avatar ? (
                   <img src={store.avatar} alt="" className="w-16 h-16 rounded-xl object-cover" />
                 ) : (
-                  <div style={{ backgroundColor: '#1A7A5E' }} className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold">
+                  <div style={{ backgroundColor: '#E85D04' }} className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold">
                     {store.name.charAt(0)}
                   </div>
                 )}
                 <div>
                   <button
                     onClick={() => avatarRef.current?.click()}
-                    className="flex items-center gap-2 px-3 py-2 border border-[#CCCCCC] rounded-lg text-sm hover:border-[#1A7A5E] transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 border border-[#CCCCCC] rounded-lg text-sm hover:border-[#E85D04] transition-colors"
                   >
-                    <Upload size={15} /> Change Avatar
+                    <Upload size={15} /> {language === 'ar' ? 'تغيير الصورة الشخصية' : language === 'fr' ? 'Changer l\'avatar' : 'Change Avatar'}
                   </button>
-                  <p className="text-xs text-[#888888] mt-1">Uploaded to Cloudinary. JPG/PNG, recommended 400×400</p>
+                  <p className="text-xs text-[#888888] mt-1">
+                    {language === 'ar' ? 'تم الرفع إلى Cloudinary. JPG/PNG، الحجم الموصى به 400×400' : language === 'fr' ? 'Téléchargé sur Cloudinary. JPG/PNG, recommandé 400×400' : 'Uploaded to Cloudinary. JPG/PNG, recommended 400×400'}
+                  </p>
                   <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                 </div>
               </div>
@@ -367,13 +393,15 @@ export default function SupplierDashboard() {
               {/* Cover images */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-[#444444]">Cover Images ({store.coverImages.length}/4)</p>
+                  <p className="text-sm font-medium text-[#444444]">
+                    {language === 'ar' ? `صور الغلاف (${store.coverImages.length}/4)` : language === 'fr' ? `Images de couverture (${store.coverImages.length}/4)` : `Cover Images (${store.coverImages.length}/4)`}
+                  </p>
                   {store.coverImages.length < 4 && (
                     <button
                       onClick={() => coverRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-[#CCCCCC] rounded-lg text-xs hover:border-[#1A7A5E] transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-[#CCCCCC] rounded-lg text-xs hover:border-[#E85D04] transition-colors"
                     >
-                      <ImagePlus size={13} /> Add Cover
+                      <ImagePlus size={13} /> {language === 'ar' ? 'إضافة غلاف' : language === 'fr' ? 'Ajouter une couverture' : 'Add Cover'}
                     </button>
                   )}
                   <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
@@ -401,45 +429,55 @@ export default function SupplierDashboard() {
 
             {/* Store details form */}
             <div className="bg-white rounded-xl border border-[#CCCCCC] p-5 space-y-4">
-              <h3 className="font-semibold text-[#1A1A1A]">Store Information</h3>
+              <h3 className="font-semibold text-[#1A1A1A]">
+                {language === 'ar' ? 'معلومات المتجر' : language === 'fr' ? 'Informations du magasin' : 'Store Information'}
+              </h3>
 
               <div>
-                <label className="block text-sm font-medium text-[#444444] mb-1.5">Store Name</label>
+                <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                  {language === 'ar' ? 'اسم المتجر' : language === 'fr' ? 'Nom du magasin' : 'Store Name'}
+                </label>
                 <input
                   value={storeForm.name || ''}
                   onChange={e => setStoreForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#444444] mb-1.5">Description</label>
+                <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                  {language === 'ar' ? 'الوصف' : language === 'fr' ? 'Description' : 'Description'}
+                </label>
                 <textarea
                   value={storeForm.description || ''}
                   onChange={e => setStoreForm(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors resize-none"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">City</label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'المدينة' : language === 'fr' ? 'Ville' : 'City'}
+                  </label>
                   <select
                     value={storeForm.city || ''}
                     onChange={e => setStoreForm(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors bg-white"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors bg-white"
                   >
                     {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">Categories</label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'الفئات' : language === 'fr' ? 'Catégories' : 'Categories'}
+                  </label>
                   <input
                     value={Array.isArray(storeForm.categories) ? storeForm.categories.join(', ') : ''}
                     onChange={e => setStoreForm(prev => ({ ...prev, categories: e.target.value.split(',').map(c => c.trim()) }))}
                     placeholder="Fashion, Beauty, ..."
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                   />
                 </div>
               </div>
@@ -447,24 +485,24 @@ export default function SupplierDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#444444] mb-1.5">
-                    <span className="text-[#25D366]">WhatsApp</span> Number
+                    {language === 'ar' ? 'رقم الواتساب' : language === 'fr' ? 'Numéro WhatsApp' : 'WhatsApp Number'}
                   </label>
                   <input
                     value={storeForm.whatsappNumber || ''}
                     onChange={e => setStoreForm(prev => ({ ...prev, whatsappNumber: e.target.value }))}
                     placeholder="+212661234567"
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#444444] mb-1.5">
-                    <span className="text-[#229ED9]">Telegram</span> Username
+                    {language === 'ar' ? 'اسم مستخدم تيليجرام' : language === 'fr' ? 'Identifiant Telegram' : 'Telegram Username'}
                   </label>
                   <input
                     value={storeForm.telegramHandle || ''}
                     onChange={e => setStoreForm(prev => ({ ...prev, telegramHandle: e.target.value }))}
                     placeholder="@your_channel"
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                   />
                 </div>
               </div>
@@ -473,9 +511,13 @@ export default function SupplierDashboard() {
                 onClick={handleSaveStore}
                 disabled={savingStore}
                 className="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
               >
-                {savingStore ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Saving...</> : <><Save size={16} /> Save Changes</>}
+                {savingStore ? (
+                  <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> {language === 'ar' ? 'جاري الحفظ...' : language === 'fr' ? 'Enregistrement...' : 'Saving...'}</>
+                ) : (
+                  <><Save size={16} /> {language === 'ar' ? 'حفظ التغييرات' : language === 'fr' ? 'Enregistrer les modifications' : 'Save Changes'}</>
+                )}
               </button>
             </div>
           </div>
@@ -485,52 +527,70 @@ export default function SupplierDashboard() {
         {tab === 'products' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-[#1A1A1A]">{products.length} Products</h2>
+              <h2 className="text-lg font-bold text-[#1A1A1A]">
+                {products.length} {language === 'ar' ? 'منتج' : language === 'fr' ? 'Produits' : 'Products'}
+              </h2>
               <button
                 onClick={() => setTab('add-product')}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
               >
-                <Plus size={16} /> Add Product
+                <Plus size={16} /> {language === 'ar' ? 'إضافة منتج' : language === 'fr' ? 'Ajouter un produit' : 'Add Product'}
               </button>
             </div>
 
             {products.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-xl border border-[#CCCCCC]">
                 <Package size={48} className="mx-auto mb-4 text-[#CCCCCC]" />
-                <p className="text-lg font-semibold text-[#444444]">No products yet</p>
-                <p className="text-sm text-[#888888] mb-4">Add your first product with an image uploaded to Cloudinary</p>
-                <button onClick={() => setTab('add-product')} className="px-4 py-2 rounded-xl text-white text-sm font-medium" style={{ backgroundColor: '#1A7A5E' }}>
-                  Add First Product
+                <p className="text-lg font-semibold text-[#444444]">
+                  {language === 'ar' ? 'لا توجد منتجات بعد' : language === 'fr' ? 'Aucun produit pour le moment' : 'No products yet'}
+                </p>
+                <p className="text-sm text-[#888888] mb-4">
+                  {language === 'ar' ? 'أضف منتجك الأول بصورة مرفوعة على Cloudinary' : language === 'fr' ? 'Ajoutez votre premier produit avec une image sur Cloudinary' : 'Add your first product with an image uploaded to Cloudinary'}
+                </p>
+                <button
+                  onClick={() => setTab('add-product')}
+                  className="px-4 py-2 rounded-xl text-white text-sm font-medium"
+                  style={{ backgroundColor: '#E85D04' }}
+                >
+                  {language === 'ar' ? 'إضافة المنتج الأول' : language === 'fr' ? 'Ajouter le premier produit' : 'Add First Product'}
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {products.map(product => (
-                  <div key={product._id} className={`bg-white rounded-xl border overflow-hidden transition-all ${product.isActive ? 'border-[#CCCCCC] hover:border-[#1A7A5E]' : 'border-[#CCCCCC] opacity-60'}`}>
+                  <div key={product._id} className={`bg-white rounded-xl border overflow-hidden transition-all ${product.isActive ? 'border-[#CCCCCC] hover:border-[#E85D04]' : 'border-[#CCCCCC] opacity-60'}`}>
                     <div className="relative aspect-square">
                       <img src={product.imageUrl} alt={product.description} className="w-full h-full object-cover" />
                       {!product.isActive && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <span className="text-white text-xs font-medium px-2 py-1 bg-black/60 rounded">Hidden</span>
+                          <span className="text-white text-xs font-medium px-2 py-1 bg-black/60 rounded">
+                            {language === 'ar' ? 'مخفي' : language === 'fr' ? 'Masqué' : 'Hidden'}
+                          </span>
                         </div>
                       )}
                     </div>
                     <div className="p-3">
                       <p className="text-xs text-[#888888] truncate">{product.category}</p>
-                      <p className="text-sm font-medium text-[#1A1A1A] truncate">{product.description || product.title || 'No description'}</p>
+                      <p className="text-sm font-medium text-[#1A1A1A] truncate">{product.description || product.title || (language === 'ar' ? 'بدون وصف' : language === 'fr' ? 'Sans description' : 'No description')}</p>
                       {product.price ? (
-                        <p className="text-sm font-bold mt-1" style={{ color: '#1A7A5E' }}>{product.price} {product.currency}</p>
+                        <p className="text-sm font-bold mt-1" style={{ color: '#E85D04' }}>{product.price} {product.currency}</p>
                       ) : (
-                        <p className="text-xs text-[#888888] mt-1">Price on request</p>
+                        <p className="text-xs text-[#888888] mt-1">
+                          {language === 'ar' ? 'السعر عند الطلب' : language === 'fr' ? 'Prix sur demande' : 'Price on request'}
+                        </p>
                       )}
                       <div className="flex gap-1 mt-2">
                         <button
                           onClick={() => handleToggleProduct(product)}
-                          className="flex-1 p-1.5 rounded-lg border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors flex items-center justify-center"
-                          title={product.isActive ? 'Hide product' : 'Show product'}
+                          className="flex-1 p-1.5 rounded-lg border border-[#CCCCCC] hover:border-[#E85D04] transition-colors flex items-center justify-center"
+                          title={
+                            product.isActive 
+                              ? (language === 'ar' ? 'إخفاء المنتج' : language === 'fr' ? 'Masquer le produit' : 'Hide product') 
+                              : (language === 'ar' ? 'إظهار المنتج' : language === 'fr' ? 'Afficher le produit' : 'Show product')
+                          }
                         >
-                          {product.isActive ? <EyeOff size={14} className="text-[#888888]" /> : <Eye size={14} style={{ color: '#1A7A5E' }} />}
+                          {product.isActive ? <EyeOff size={14} className="text-[#888888]" /> : <Eye size={14} style={{ color: '#E85D04' }} />}
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(product._id)}
@@ -550,12 +610,16 @@ export default function SupplierDashboard() {
         {/* Add Product Tab */}
         {tab === 'add-product' && (
           <div className="max-w-xl">
-            <h2 className="text-lg font-bold text-[#1A1A1A] mb-5">Add New Product</h2>
+            <h2 className="text-lg font-bold text-[#1A1A1A] mb-5">
+              {language === 'ar' ? 'إضافة منتج جديد' : language === 'fr' ? 'Ajouter un nouveau produit' : 'Add New Product'}
+            </h2>
 
             <form onSubmit={handleAddProduct} className="bg-white rounded-xl border border-[#CCCCCC] p-6 space-y-4">
               {/* Image upload */}
               <div>
-                <label className="block text-sm font-medium text-[#444444] mb-2">Product Image <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-[#444444] mb-2">
+                  {language === 'ar' ? 'صورة المنتج' : language === 'fr' ? 'Image du produit' : 'Product Image'} <span className="text-red-500">*</span>
+                </label>
                 {productForm.imagePreview ? (
                   <div className="relative">
                     <img src={productForm.imagePreview} alt="preview" className="w-full h-48 object-cover rounded-xl" />
@@ -566,19 +630,23 @@ export default function SupplierDashboard() {
                     >
                       <X size={14} />
                     </button>
-                    <div className="mt-1 flex items-center gap-1 text-xs" style={{ color: '#1A7A5E' }}>
-                      <CheckCircle size={12} /> Will be uploaded to Cloudinary on submit
+                    <div className="mt-1 flex items-center gap-1 text-xs" style={{ color: '#E85D04' }}>
+                      <CheckCircle size={12} /> {language === 'ar' ? 'سيتم الرفع إلى Cloudinary عند الإرسال' : language === 'fr' ? 'Sera téléchargé sur Cloudinary lors de la soumission' : 'Will be uploaded to Cloudinary on submit'}
                     </div>
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => productImageRef.current?.click()}
-                    className="w-full h-48 border-2 border-dashed border-[#CCCCCC] rounded-xl flex flex-col items-center justify-center hover:border-[#1A7A5E] transition-colors"
+                    className="w-full h-48 border-2 border-dashed border-[#CCCCCC] rounded-xl flex flex-col items-center justify-center hover:border-[#E85D04] transition-colors"
                   >
                     <Upload size={32} className="mb-2 text-[#CCCCCC]" />
-                    <p className="text-sm text-[#888888]">Click to upload product image</p>
-                    <p className="text-xs text-[#888888]">JPG, PNG, WebP · Max 10MB · Saved to Cloudinary</p>
+                    <p className="text-sm text-[#888888]">
+                      {language === 'ar' ? 'انقر لرفع صورة المنتج' : language === 'fr' ? 'Cliquez pour télécharger l\'image' : 'Click to upload product image'}
+                    </p>
+                    <p className="text-xs text-[#888888]">
+                      {language === 'ar' ? 'JPG، PNG، WebP · بحد أقصى 10 ميجابايت · محفوظة على Cloudinary' : language === 'fr' ? 'JPG, PNG, WebP · Max 10 Mo · Enregistré sur Cloudinary' : 'JPG, PNG, WebP · Max 10MB · Saved to Cloudinary'}
+                    </p>
                   </button>
                 )}
                 <input ref={productImageRef} type="file" accept="image/*" className="hidden" onChange={handleProductImageSelect} />
@@ -586,42 +654,50 @@ export default function SupplierDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">Category <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'الفئة' : language === 'fr' ? 'Catégorie' : 'Category'} <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={productForm.category}
                     onChange={e => setProductForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] bg-white"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] bg-white"
                   >
-                    <option value="">Select category</option>
+                    <option value="">{language === 'ar' ? 'اختر الفئة' : language === 'fr' ? 'Sélectionner une catégorie' : 'Select category'}</option>
                     {CATEGORIES.filter(c => c.id !== 'all').map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">Subcategory</label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'الفئة الفرعية' : language === 'fr' ? 'Sous-catégorie' : 'Subcategory'}
+                  </label>
                   <input
                     value={productForm.subcategory}
                     onChange={e => setProductForm(prev => ({ ...prev, subcategory: e.target.value }))}
                     placeholder="e.g. Dresses"
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E]"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#444444] mb-1.5">Description</label>
+                <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                  {language === 'ar' ? 'الوصف' : language === 'fr' ? 'Description' : 'Description'}
+                </label>
                 <input
                   value={productForm.description}
                   onChange={e => setProductForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Product description"
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E]"
+                  placeholder={language === 'ar' ? 'وصف المنتج' : language === 'fr' ? 'Description du produit' : 'Product description'}
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">Price (leave empty = on request)</label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'السعر (اتركه فارغاً = عند الطلب)' : language === 'fr' ? 'Prix (laisser vide = sur demande)' : 'Price (leave empty = on request)'}
+                  </label>
                   <input
                     type="number"
                     value={productForm.price}
@@ -629,15 +705,17 @@ export default function SupplierDashboard() {
                     placeholder="e.g. 120"
                     min="0"
                     step="0.01"
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E]"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#444444] mb-1.5">Currency</label>
+                  <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                    {language === 'ar' ? 'العملة' : language === 'fr' ? 'Devise' : 'Currency'}
+                  </label>
                   <select
                     value={productForm.currency}
                     onChange={e => setProductForm(prev => ({ ...prev, currency: e.target.value }))}
-                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] bg-white"
+                    className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] bg-white"
                   >
                     {['MAD', 'EUR', 'USD', 'AED'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -645,12 +723,14 @@ export default function SupplierDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#444444] mb-1.5">Tags (comma separated)</label>
+                <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                  {language === 'ar' ? 'الوسوم (مفصولة بفاصلة)' : language === 'fr' ? 'Mots-clés (séparés par une virgule)' : 'Tags (comma separated)'}
+                </label>
                 <input
                   value={productForm.tags}
                   onChange={e => setProductForm(prev => ({ ...prev, tags: e.target.value }))}
                   placeholder="e.g. summer, casual, women"
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E]"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04]"
                 />
               </div>
 
@@ -658,12 +738,12 @@ export default function SupplierDashboard() {
                 type="submit"
                 disabled={addingProduct}
                 className="w-full py-3.5 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
               >
                 {addingProduct ? (
-                  <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Uploading to Cloudinary...</>
+                  <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> {language === 'ar' ? 'جاري الرفع إلى Cloudinary...' : language === 'fr' ? 'Téléchargement sur Cloudinary...' : 'Uploading to Cloudinary...'}</>
                 ) : (
-                  <><Upload size={16} /> Upload & Add Product</>
+                  <><Upload size={16} /> {language === 'ar' ? 'رفع وإضافة المنتج' : language === 'fr' ? 'Télécharger & Ajouter le produit' : 'Upload & Add Product'}</>
                 )}
               </button>
             </form>

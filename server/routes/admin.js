@@ -398,4 +398,39 @@ router.put('/support-tickets/:id/status', async (req, res) => {
   }
 });
 
+// GET /api/admin/settings
+const SiteSettings = require('../models/SiteSettings');
+router.get('/settings', async (req, res) => {
+  try {
+    let settings = await SiteSettings.findOne({ key: 'general' });
+    if (!settings) {
+      settings = await SiteSettings.create({ key: 'general' });
+    }
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching site settings.' });
+  }
+});
+
+// PUT /api/admin/settings
+router.put('/settings', async (req, res) => {
+  try {
+    const { email, phoneNumber, whatsappNumber, instagramLink, facebookLink, linkedinLink } = req.body;
+    let settings = await SiteSettings.findOne({ key: 'general' });
+    if (!settings) {
+      settings = new SiteSettings({ key: 'general' });
+    }
+    if (email !== undefined) settings.email = email;
+    if (phoneNumber !== undefined) settings.phoneNumber = phoneNumber;
+    if (whatsappNumber !== undefined) settings.whatsappNumber = whatsappNumber;
+    if (instagramLink !== undefined) settings.instagramLink = instagramLink;
+    if (facebookLink !== undefined) settings.facebookLink = facebookLink;
+    if (linkedinLink !== undefined) settings.linkedinLink = linkedinLink;
+    await settings.save();
+    res.json({ success: true, settings, message: 'Settings updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error updating site settings.' });
+  }
+});
+
 module.exports = router;

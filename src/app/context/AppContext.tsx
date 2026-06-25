@@ -5,7 +5,7 @@ import {
   apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
   apiGetMyTickets, apiCreateSupportTicket,
   apiGetCollections, apiCreateCollection, apiUpdateCollection, apiDeleteCollection, apiAddItemToCollection,
-  ApiUser, ApiNotification
+  ApiUser, ApiNotification, apiGetSettings
 } from '../services/api';
 import { Collection, SupportTicket } from '../data/mockData';
 
@@ -30,8 +30,14 @@ interface AppState {
   tickets: SupportTicket[];
   sidebarCollapsed: boolean;
   isApiAvailable: boolean;
-  notifications: ApiNotification[];
   unreadNotifications: number;
+  siteEmail: string;
+  sitePhone: string;
+  siteWhatsapp: string;
+  siteInstagram: string;
+  siteFacebook: string;
+  siteLinkedin: string;
+  language: string;
 }
 
 type Action =
@@ -54,7 +60,9 @@ type Action =
   | { type: 'SET_API_STATUS'; payload: boolean }
   | { type: 'SET_NOTIFICATIONS'; payload: ApiNotification[] }
   | { type: 'MARK_NOTIFICATION_READ'; payload: string }
-  | { type: 'MARK_ALL_NOTIFICATIONS_READ' };
+  | { type: 'MARK_ALL_NOTIFICATIONS_READ' }
+  | { type: 'SET_SITE_SETTINGS'; payload: { email: string; phoneNumber: string; whatsappNumber: string; instagramLink: string; facebookLink: string; linkedinLink: string } }
+  | { type: 'SET_LANGUAGE'; payload: string };
 
 const initialState: AppState = {
   user: null,
@@ -66,6 +74,13 @@ const initialState: AppState = {
   isApiAvailable: false,
   notifications: [],
   unreadNotifications: 0,
+  siteEmail: 'contact@jmlamaroc.com',
+  sitePhone: '0779 137 560',
+  siteWhatsapp: '212779137560',
+  siteInstagram: 'https://instagram.com',
+  siteFacebook: 'https://facebook.com',
+  siteLinkedin: 'https://linkedin.com',
+  language: localStorage.getItem('jmlmaroc_lang') || 'en',
 };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -135,6 +150,21 @@ function reducer(state: AppState, action: Action): AppState {
         notifications: state.notifications.map(n => ({ ...n, isRead: true })),
         unreadNotifications: 0
       };
+    case 'SET_SITE_SETTINGS':
+      return {
+        ...state,
+        siteEmail: action.payload.email || state.siteEmail,
+        sitePhone: action.payload.phoneNumber || state.sitePhone,
+        siteWhatsapp: action.payload.whatsappNumber || state.siteWhatsapp,
+        siteInstagram: action.payload.instagramLink || state.siteInstagram,
+        siteFacebook: action.payload.facebookLink || state.siteFacebook,
+        siteLinkedin: action.payload.linkedinLink || state.siteLinkedin
+      };
+    case 'SET_LANGUAGE':
+      return {
+        ...state,
+        language: action.payload
+      };
     default:
       return state;
   }
@@ -174,7 +204,7 @@ interface AppContextType extends AppState {
   refreshTickets: () => Promise<void>;
   refreshCollections: () => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
-  markAllNotificationsRead: () => Promise<void>;
+  setLanguage: (lang: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -184,7 +214,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // On mount: check JWT token → fetch user
   useEffect(() => {
-    const token = localStorage.getItem('choufliya_token');
+    // Set initial direction
+    const initialLang = localStorage.getItem('jmlmaroc_lang') || 'en';
+    document.documentElement.dir = initialLang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = initialLang;
+
+    // Fetch general site configuration
+    apiGetSettings()
+      .then(res => {
+        if (res.success && res.settings) {
+          dispatch({ type: 'SET_SITE_SETTINGS', payload: res.settings });
+        }
+      })
+      .catch(err => console.error('Failed to load settings:', err));
+
+    const token = localStorage.getItem('jmlmaroc_token');
     if (!token) {
       dispatch({ type: 'SET_LOADING', payload: false });
       return;
@@ -195,14 +239,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // If the user is an admin, they shouldn't be logged into the main site context
           if (res.user.role === 'admin') {
             console.log('Admin detected on main site - logging out to maintain separation');
-            localStorage.removeItem('choufliya_token');
+            localStorage.removeItem('jmlmaroc_token');
             dispatch({ type: 'SET_LOADING', payload: false });
             return;
           }
           // If user is blocked, clear token and don't log in
           if (res.user.status === 'blocked') {
             console.log('Blocked user detected, clearing session');
-            localStorage.removeItem('choufliya_token');
+            localStorage.removeItem('jmlmaroc_token');
             dispatch({ type: 'SET_LOADING', payload: false });
             return;
           }
@@ -215,7 +259,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(err => {
         console.error('Auth check failed:', err);
-        localStorage.removeItem('choufliya_token');
+        localStorage.removeItem('jmlmaroc_token');
         dispatch({ type: 'SET_LOADING', payload: false });
       });
   }, []);
@@ -227,7 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (res.user.status === 'blocked') {
         throw new Error('Your account has been suspended. Contact support.');
       }
-      localStorage.setItem('choufliya_token', res.token);
+      localStorage.setItem('jmlmaroc_token', res.token);
       dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
       dispatch({ type: 'SET_API_STATUS', payload: true });
       return true;
@@ -249,7 +293,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         res = await apiGetMe();
       }
       
-      if (res.token) localStorage.setItem('choufliya_token', res.token);
+      if (res.token) localStorage.setItem('jmlmaroc_token', res.token);
       dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
       dispatch({ type: 'SET_API_STATUS', payload: true });
       return true;
@@ -263,7 +307,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await apiRegister(name, email, password);
       // New users are pending — store token so we can redirect to pending page
-      localStorage.setItem('choufliya_token', res.token);
+      localStorage.setItem('jmlmaroc_token', res.token);
       dispatch({ type: 'LOGIN', payload: mapApiUser(res.user) });
       dispatch({ type: 'SET_API_STATUS', payload: true });
       return true;
@@ -273,7 +317,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('choufliya_token');
+    localStorage.removeItem('jmlmaroc_token');
     dispatch({ type: 'LOGOUT' });
   };
 
@@ -290,7 +334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiDeleteAccount();
     } catch { /* ignore */ }
-    localStorage.removeItem('choufliya_token');
+    localStorage.removeItem('jmlmaroc_token');
     dispatch({ type: 'LOGOUT' });
   };
 
@@ -407,7 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'choufliya_data.json'; a.click();
+    a.href = url; a.download = 'jmlmaroc_data.json'; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -446,12 +490,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.user, refreshNotifications, refreshTickets, refreshCollections]);
 
+  const setLanguage = (lang: string) => {
+    localStorage.setItem('jmlmaroc_lang', lang);
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+    dispatch({ type: 'SET_LANGUAGE', payload: lang });
+  };
+
   return (
     <AppContext.Provider value={{
       ...state, login, loginWithGoogle, register, logout, updateUser, deleteAccount,
       addFavorite, removeFavorite, isFavorite, addCollection, deleteCollection,
       updateCollection, addToCollection, addTicket, toggleSidebar, downloadData,
       refreshNotifications, refreshTickets, refreshCollections, markNotificationRead, markAllNotificationsRead,
+      setLanguage
     }}>
       {children}
     </AppContext.Provider>

@@ -1,5 +1,5 @@
 /**
- * ChouFliya API Service
+ * JML Maroc API Service
  * Connects to the Node.js backend at port 5000.
  * Run: cd server && npm install && node seed.js && npm start
  */
@@ -7,8 +7,8 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api'; // Proxied in dev, absolute in prod if set
 
 const getToken = (isAdminRequest: boolean) => {
-  if (isAdminRequest) return localStorage.getItem('choufliya_admin_token') || localStorage.getItem('choufliya_token');
-  return localStorage.getItem('choufliya_token');
+  if (isAdminRequest) return localStorage.getItem('jmlmaroc_admin_token') || localStorage.getItem('jmlmaroc_token');
+  return localStorage.getItem('jmlmaroc_token');
 };
 
 const authHeaders = (isAdminRequest: boolean): HeadersInit => ({
@@ -42,7 +42,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (data.statusCode === 'BLOCKED') {
       console.log('User is blocked - clearing session');
-      localStorage.removeItem('choufliya_token');
+      localStorage.removeItem('jmlmaroc_token');
       window.location.href = '/blocked';
     }
     throw new Error(data.message || 'API error');
@@ -302,6 +302,27 @@ export const apiAdminGetSupportTickets = (params?: any) => {
 
 export const apiAdminUpdateTicketStatus = (id: string, status: string) => 
   request<{ success: boolean; ticket: any }>(`/admin/support-tickets/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+
+export const apiGetSettings = () =>
+  request<{ success: boolean; settings: ApiSiteSettings }>('/settings');
+
+export const apiAdminGetSettings = () =>
+  request<{ success: boolean; settings: ApiSiteSettings }>('/admin/settings');
+
+export const apiAdminUpdateSettings = (data: Partial<ApiSiteSettings>) =>
+  request<{ success: boolean; settings: ApiSiteSettings }>('/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export interface ApiSiteSettings {
+  email: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  instagramLink: string;
+  facebookLink: string;
+  linkedinLink: string;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

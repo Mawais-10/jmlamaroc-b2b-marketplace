@@ -65,7 +65,7 @@ export default function AdminStores() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 mb-5 focus-within:border-[#1A7A5E] transition-colors">
+      <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 mb-5 focus-within:border-[#E85D04] transition-colors">
         <Search size={16} className="text-[#888888]" />
         <input
           type="text"
@@ -78,7 +78,7 @@ export default function AdminStores() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
         </div>
       ) : stores.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-[#CCCCCC]">
@@ -94,7 +94,7 @@ export default function AdminStores() {
                 {store.avatar ? (
                   <img src={store.avatar} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
                 ) : (
-                  <div style={{ backgroundColor: '#1A7A5E' }} className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                  <div style={{ backgroundColor: '#E85D04' }} className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
                     {store.name.charAt(0)}
                   </div>
                 )}
@@ -106,8 +106,8 @@ export default function AdminStores() {
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                       style={{
-                        backgroundColor: store.isApproved ? '#E8F5F0' : '#FEF2F2',
-                        color: store.isApproved ? '#1A7A5E' : '#CC0000',
+                        backgroundColor: store.isApproved ? '#FFF2EB' : '#FEF2F2',
+                        color: store.isApproved ? '#E85D04' : '#CC0000',
                       }}
                     >
                       {store.isApproved ? 'Active' : 'Paused'}
@@ -129,7 +129,7 @@ export default function AdminStores() {
                     href={`/groups/${store.handle}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 rounded-lg border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors"
+                    className="p-2 rounded-lg border border-[#CCCCCC] hover:border-[#E85D04] transition-colors"
                     title="View store"
                   >
                     <ExternalLink size={15} className="text-[#888888]" />
@@ -137,11 +137,11 @@ export default function AdminStores() {
                   <button
                     onClick={() => handleToggle(store)}
                     disabled={actionLoading === store._id}
-                    className={`p-2 rounded-lg border transition-colors disabled:opacity-60 ${store.isApproved ? 'border-[#CCCCCC] hover:border-red-400' : 'border-[#CCCCCC] hover:border-[#1A7A5E]'}`}
+                    className={`p-2 rounded-lg border transition-colors disabled:opacity-60 ${store.isApproved ? 'border-[#CCCCCC] hover:border-red-400' : 'border-[#CCCCCC] hover:border-[#E85D04]'}`}
                     title={store.isApproved ? 'Pause store' : 'Activate store'}
                   >
                     {store.isApproved
-                      ? <ToggleRight size={18} style={{ color: '#1A7A5E' }} />
+                      ? <ToggleRight size={18} style={{ color: '#E85D04' }} />
                       : <ToggleLeft size={18} className="text-[#888888]" />
                     }
                   </button>

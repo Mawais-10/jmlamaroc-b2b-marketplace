@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 
 const COLOR_SWATCHES = [
-  '#8B5CF6', '#EC4899', '#E8820C', '#1A7A5E', '#3B82F6',
+  '#8B5CF6', '#EC4899', '#E8820C', '#E85D04', '#3B82F6',
   '#6D28D9', '#CC0000', '#0D9488'
 ];
 
@@ -43,8 +43,8 @@ export default function CollectionsPage() {
       <div className="bg-white border-b border-[#CCCCCC] px-6 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div style={{ backgroundColor: '#E8F5F0' }} className="p-2 rounded-xl">
-              <Layers size={22} style={{ color: '#1A7A5E' }} />
+            <div style={{ backgroundColor: '#FFF2EB' }} className="p-2 rounded-xl">
+              <Layers size={22} style={{ color: '#E85D04' }} />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[#1A1A1A]">Collections</h1>
@@ -54,7 +54,7 @@ export default function CollectionsPage() {
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#1A7A5E' }}
+            style={{ backgroundColor: '#E85D04' }}
           >
             <Plus size={16} /> New Collection
           </button>
@@ -64,7 +64,7 @@ export default function CollectionsPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {collections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: '#E8F5F0' }}>
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: '#FFF2EB' }}>
               <Layers size={48} className="text-[#CCCCCC]" />
             </div>
             <h2 className="text-xl font-semibold text-[#444444] mb-2">No collections yet</h2>
@@ -72,7 +72,7 @@ export default function CollectionsPage() {
             <button
               onClick={() => setShowModal(true)}
               className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#1A7A5E' }}
+              style={{ backgroundColor: '#E85D04' }}
             >
               <Plus size={18} /> New Collection
             </button>
@@ -82,7 +82,7 @@ export default function CollectionsPage() {
             {collections.map(col => (
               <div
                 key={col.id}
-                className="bg-white rounded-xl overflow-hidden border border-[#CCCCCC] hover:shadow-lg hover:border-[#1A7A5E] transition-all cursor-pointer relative group"
+                className="bg-white rounded-xl overflow-hidden border border-[#CCCCCC] hover:shadow-lg hover:border-[#E85D04] transition-all cursor-pointer relative group"
                 onClick={() => navigate(`/collections/${col.id}`)}
               >
                 {/* Main card body */}
@@ -132,7 +132,7 @@ export default function CollectionsPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="dresses"
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
                   autoFocus
                 />
               </div>
@@ -144,7 +144,7 @@ export default function CollectionsPage() {
                   onChange={e => setDescription(e.target.value)}
                   placeholder="i well..."
                   rows={3}
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors resize-none"
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors resize-none"
                 />
               </div>
 
@@ -171,7 +171,7 @@ export default function CollectionsPage() {
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-[#CCCCCC] rounded-xl text-sm font-medium text-[#444444] hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleCreate} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: '#1A7A5E' }}>
+              <button onClick={handleCreate} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: '#E85D04' }}>
                 Create Collection
               </button>
             </div>

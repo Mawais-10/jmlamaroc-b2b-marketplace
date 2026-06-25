@@ -5,6 +5,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { apiGoogleAuth } from '../services/api';
+import { useTranslation } from '../i18n/useTranslation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const { login, loginWithGoogle } = useApp();
+  const { t, language } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/search';
@@ -21,18 +23,21 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email || !password) { setError('Please fill in all fields'); return; }
+    if (!email || !password) { 
+      setError(language === 'ar' ? 'يرجى ملء جميع الحقول' : language === 'fr' ? 'Veuillez remplir tous les champs' : 'Please fill in all fields'); 
+      return; 
+    }
     setLoading(true);
     try {
       const ok = await login(email, password);
       if (ok) {
-        toast.success('Welcome back!');
+        toast.success(language === 'ar' ? 'مرحباً بعودتك!' : language === 'fr' ? 'Bon retour !' : 'Welcome back!');
         navigate(redirect);
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(language === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صالحة. يرجى المحاولة مرة أخرى.' : language === 'fr' ? 'E-mail ou mot de passe invalide. Veuillez réessayer.' : 'Invalid email or password. Please try again.');
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || (language === 'ar' ? 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.' : language === 'fr' ? 'Échec de la connexion. Veuillez réessayer.' : 'Login failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -57,73 +62,67 @@ export default function LoginPage() {
             picture: userInfo.picture
           });
           if (ok) {
-            toast.success('Signed in with Google!');
+            toast.success(language === 'ar' ? 'تم تسجيل الدخول باستخدام Google!' : language === 'fr' ? 'Connecté avec Google !' : 'Signed in with Google!');
             navigate(redirect);
           } else {
-            toast.error('Google sign-in rejected by backend');
+            toast.error(language === 'ar' ? 'تم رفض تسجيل الدخول بواسطة Google' : language === 'fr' ? 'Connexion Google refusée par le backend' : 'Google sign-in rejected by backend');
           }
         } catch (err: any) {
           toast.error('Auth Error: ' + (err.message || 'Unknown error'));
         }
       } catch {
-        toast.error('Google sign-in failed. Please try again.');
+        toast.error(language === 'ar' ? 'فشل تسجيل الدخول باستخدام Google. حاول مرة أخرى.' : language === 'fr' ? 'Échec de la connexion Google. Veuillez réessayer.' : 'Google sign-in failed. Please try again.');
       } finally {
         setGoogleLoading(false);
       }
     },
     onError: () => {
-      toast.error('Google sign-in was cancelled or failed.');
+      toast.error(language === 'ar' ? 'تم إلغاء تسجيل الدخول باستخدام Google أو فشله.' : language === 'fr' ? 'La connexion Google a été annulée ou a échoué.' : 'Google sign-in was cancelled or failed.');
     },
   });
 
   return (
     <div className="min-h-screen flex">
       {/* Left column - marketing */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12" style={{ backgroundColor: '#1E3A30' }}>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12" style={{ backgroundColor: '#3E1A0A' }}>
         <div>
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-12">
-            <div style={{ backgroundColor: '#1A7A5E' }} className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">C</span>
-            </div>
-            <div>
-              <span className="text-white text-xl font-bold">ChouFliya</span>
-              <p className="text-xs tracking-widest font-bold" style={{ color: '#E8820C' }}>CHOUFLIYA.MA</p>
-            </div>
+          <div className="mb-12">
+            <img src="/images/Logo.png" alt="Logo" className="w-20 h-20 rounded-2xl object-contain" />
           </div>
 
           <h2 className="text-3xl font-bold text-white mb-4 leading-tight">
-            Morocco's largest wholesale platform
+            {language === 'ar' ? 'أكبر منصة لبيع الجملة في المغرب' : language === 'fr' ? 'La plus grande plateforme de gros du Maroc' : 'Morocco\'s largest wholesale platform'}
           </h2>
-          <p className="text-[#E8F5F0] opacity-80 text-base leading-relaxed mb-10">
-            Snap any product and find every wholesaler selling it, in seconds. No middlemen.
+          <p className="text-[#FFF2EB] opacity-80 text-base leading-relaxed mb-10">
+            {language === 'ar' ? 'التقط صورة لأي منتج واعثر على المورد في ثوانٍ. بدون وسطاء.' : language === 'fr' ? 'Photographiez n\'importe quel produit et trouvez son grossiste en quelques secondes.' : 'Snap any product and find every wholesaler selling it, in seconds. No middlemen.'}
           </p>
 
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[
-              { icon: Package, value: '1M+', label: 'Products' },
-              { icon: Users, value: '100+', label: 'Wholesalers' },
-              { icon: Zap, value: '<1s', label: 'Search Speed' },
+              { icon: Package, value: '1M+', label: language === 'ar' ? 'منتجات' : language === 'fr' ? 'Produits' : 'Products' },
+              { icon: Users, value: '100+', label: language === 'ar' ? 'تجار جملة' : language === 'fr' ? 'Grossistes' : 'Wholesalers' },
+              { icon: Zap, value: '<1s', label: language === 'ar' ? 'سرعة البحث' : language === 'fr' ? 'Vitesse de recherche' : 'Search Speed' },
             ].map(({ icon: Icon, value, label }) => (
               <div key={label} className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
                 <Icon size={20} className="mb-2 text-white opacity-70" />
                 <p className="text-xl font-bold text-white">{value}</p>
-                <p className="text-xs text-[#E8F5F0] opacity-60">{label}</p>
+                <p className="text-xs text-[#FFF2EB] opacity-60">{label}</p>
               </div>
             ))}
           </div>
 
           {/* <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(232,130,12,0.15)', borderLeft: '3px solid #E8820C' }}>
-            <p className="text-sm text-[#E8F5F0] opacity-80">
+            <p className="text-sm text-[#FFF2EB] opacity-80">
               <span className="font-semibold text-[#E8820C]">Admin Panel:</span> Access at{' '}
               <code className="text-white">http://localhost:5000</code> after running the backend server.
             </p>
           </div> */}
         </div>
 
-        <div className="flex items-center gap-2 text-[#E8F5F0] opacity-60 text-sm">
+        <div className="flex items-center gap-2 text-[#FFF2EB] opacity-60 text-sm">
           <Shield size={16} />
-          <span>Secured with JWT + Google OAuth</span>
+          <span>{language === 'ar' ? 'مؤمن باستخدام JWT + Google OAuth' : language === 'fr' ? 'Sécurisé avec JWT + Google OAuth' : 'Secured with JWT + Google OAuth'}</span>
         </div>
       </div>
 
@@ -131,8 +130,12 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-[#1A1A1A] mb-1">Sign in to ChouFliya</h1>
-            <p className="text-sm text-[#888888]">Welcome back! Please sign in to your account.</p>
+            <h1 className="text-2xl font-bold text-[#1A1A1A] mb-1">
+              {language === 'ar' ? 'تسجيل الدخول إلى JML Maroc' : language === 'fr' ? 'Connexion à JML Maroc' : 'Sign in to JML Maroc'}
+            </h1>
+            <p className="text-sm text-[#888888]">
+              {language === 'ar' ? 'مرحباً بعودتك! يرجى تسجيل الدخول إلى حسابك.' : language === 'fr' ? 'Bon retour ! Veuillez vous connecter à votre compte.' : 'Welcome back! Please sign in to your account.'}
+            </p>
           </div>
 
           {/* Error message */}
@@ -150,7 +153,7 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-3 py-3 border border-[#CCCCCC] rounded-xl text-sm font-medium text-[#444444] hover:bg-[#F5F5F5] transition-colors mb-5 disabled:opacity-60"
           >
             {googleLoading ? (
-              <span className="animate-spin w-4 h-4 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+              <span className="animate-spin w-4 h-4 border-2 border-[#E85D04] border-t-transparent rounded-full" />
             ) : (
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -159,38 +162,42 @@ export default function LoginPage() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
             )}
-            {googleLoading ? 'Signing in...' : 'Sign in with Google'}
+            {googleLoading ? (language === 'ar' ? 'جاري الدخول...' : language === 'fr' ? 'Connexion...' : 'Signing in...') : (language === 'ar' ? 'الدخول باستخدام Google' : language === 'fr' ? 'Se connecter avec Google' : 'Sign in with Google')}
           </button>
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-[#CCCCCC]"></div>
-            <span className="text-xs font-semibold text-[#888888] tracking-wider">OR CONTINUE WITH EMAIL</span>
+            <span className="text-xs font-semibold text-[#888888] tracking-wider">
+              {language === 'ar' ? 'أو تواصل عبر البريد الإلكتروني' : language === 'fr' ? 'OU CONTINUER PAR E-MAIL' : 'OR CONTINUE WITH EMAIL'}
+            </span>
             <div className="flex-1 h-px bg-[#CCCCCC]"></div>
           </div>
 
           {/* Email form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#444444] mb-1.5">Email address</label>
+              <label className="block text-sm font-medium text-[#444444] mb-1.5">{t.common.email}</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
                 placeholder="you@example.com"
-                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder:text-[#888888] focus:outline-none focus:border-[#1A7A5E] transition-colors"
+                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder:text-[#888888] focus:outline-none focus:border-[#E85D04] transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#444444] mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-[#444444] mb-1.5">
+                {language === 'ar' ? 'كلمة المرور' : language === 'fr' ? 'Mot de passe' : 'Password'}
+              </label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
-                  placeholder="Enter your password"
-                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder:text-[#888888] focus:outline-none focus:border-[#1A7A5E] transition-colors pr-12"
+                  placeholder={language === 'ar' ? 'أدخل كلمة المرور' : language === 'fr' ? 'Entrez votre mot de passe' : 'Enter your password'}
+                  className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder:text-[#888888] focus:outline-none focus:border-[#E85D04] transition-colors pr-12"
                 />
                 <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888888] hover:text-[#444444] transition-colors">
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -202,23 +209,25 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3.5 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#1A7A5E' }}
+              style={{ backgroundColor: '#E85D04' }}
             >
               {loading ? (
-                <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Signing in...</>
-              ) : 'Sign In'}
+                <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> {language === 'ar' ? 'جاري الدخول...' : language === 'fr' ? 'Connexion...' : 'Signing in...'}</>
+              ) : t.nav.login}
             </button>
           </form>
 
           <p className="text-center text-sm text-[#888888] mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-semibold hover:opacity-80" style={{ color: '#1A7A5E' }}>Create one</Link>
+            {language === 'ar' ? 'ليس لديك حساب؟' : language === 'fr' ? 'Pas encore de compte ?' : 'Don\'t have an account?'}{' '}
+            <Link to="/register" className="font-semibold hover:opacity-80" style={{ color: '#E85D04' }}>
+              {language === 'ar' ? 'أنشئ حساباً' : language === 'fr' ? 'Créer un compte' : 'Create one'}
+            </Link>
           </p>
 
           {/* Admin link */}
           <div className="mt-6 pt-4 border-t border-[#F5F5F5] text-center">
-            <Link to="/admin" className="text-xs text-[#888888] hover:text-[#1A7A5E] transition-colors">
-              Admin Panel →
+            <Link to="/admin" className="text-xs text-[#888888] hover:text-[#E85D04] transition-colors">
+              {language === 'ar' ? 'لوحة التحكم للمسؤول ←' : language === 'fr' ? 'Panneau d\'administration →' : 'Admin Panel →'}
             </Link>
           </div>
         </div>

@@ -5,13 +5,13 @@ import { toast } from 'sonner';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#E8820C',
-  approved: '#1A7A5E',
+  approved: '#E85D04',
   rejected: '#CC0000',
 };
 
 const STATUS_BG: Record<string, string> = {
   pending: '#FFF8E1',
-  approved: '#E8F5F0',
+  approved: '#FFF2EB',
   rejected: '#FEF2F2',
 };
 
@@ -81,9 +81,9 @@ export default function AdminSupplierRequests() {
           <h1 className="text-2xl font-bold text-[#1A1A1A]">Supplier Requests</h1>
           <p className="text-sm text-[#888888]">Review and approve supplier applications</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#E8F5F0' }}>
-          <Filter size={14} style={{ color: '#1A7A5E' }} />
-          <span className="text-sm font-medium" style={{ color: '#1A7A5E' }}>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#FFF2EB' }}>
+          <Filter size={14} style={{ color: '#E85D04' }} />
+          <span className="text-sm font-medium" style={{ color: '#E85D04' }}>
             {requests.filter(r => r.status === 'pending').length} pending
           </span>
         </div>
@@ -96,9 +96,9 @@ export default function AdminSupplierRequests() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-              filter === f ? 'text-white' : 'text-[#888888] bg-white border border-[#CCCCCC] hover:border-[#1A7A5E]'
+              filter === f ? 'text-white' : 'text-[#888888] bg-white border border-[#CCCCCC] hover:border-[#E85D04]'
             }`}
-            style={filter === f ? { backgroundColor: STATUS_COLORS[f] || '#1A7A5E' } : {}}
+            style={filter === f ? { backgroundColor: STATUS_COLORS[f] || '#E85D04' } : {}}
           >
             {f}
           </button>
@@ -108,7 +108,7 @@ export default function AdminSupplierRequests() {
       {/* Requests list */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
         </div>
       ) : requests.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-[#CCCCCC]">
@@ -121,7 +121,7 @@ export default function AdminSupplierRequests() {
             <div key={req._id} className="bg-white rounded-xl border border-[#CCCCCC] overflow-hidden">
               {/* Request header */}
               <div className="flex items-center gap-4 p-4">
-                <div style={{ backgroundColor: '#1A7A5E' }} className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+                <div style={{ backgroundColor: '#E85D04' }} className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0">
                   {req.user?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -143,7 +143,7 @@ export default function AdminSupplierRequests() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setExpandedId(expandedId === req._id ? null : req._id)}
-                    className="p-2 rounded-lg border border-[#CCCCCC] hover:border-[#1A7A5E] transition-colors"
+                    className="p-2 rounded-lg border border-[#CCCCCC] hover:border-[#E85D04] transition-colors"
                   >
                     <Eye size={15} className="text-[#888888]" />
                   </button>
@@ -153,7 +153,7 @@ export default function AdminSupplierRequests() {
                         onClick={() => handleApprove(req._id, req.businessName)}
                         disabled={actionLoading === req._id}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
-                        style={{ backgroundColor: '#1A7A5E' }}
+                        style={{ backgroundColor: '#E85D04' }}
                       >
                         {actionLoading === req._id ? (
                           <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
@@ -178,11 +178,11 @@ export default function AdminSupplierRequests() {
                 <div className="border-t border-[#F5F5F5] px-4 py-4 grid sm:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-[#444444]">
-                      <Tag size={14} style={{ color: '#1A7A5E' }} />
+                      <Tag size={14} style={{ color: '#E85D04' }} />
                       <span>Category: <strong>{req.category}</strong></span>
                     </div>
                     <div className="flex items-center gap-2 text-[#444444]">
-                      <MapPin size={14} style={{ color: '#1A7A5E' }} />
+                      <MapPin size={14} style={{ color: '#E85D04' }} />
                       <span>City: <strong>{req.city}</strong></span>
                     </div>
                     <div className="flex items-center gap-2 text-[#444444]">

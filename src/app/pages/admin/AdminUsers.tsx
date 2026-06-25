@@ -14,12 +14,12 @@ import { toast } from 'sonner';
 const ROLE_CONFIG = {
   admin: { label: 'Admin', color: '#CC0000', bg: '#FEF2F2', icon: Shield },
   supplier: { label: 'Supplier', color: '#E8820C', bg: '#FFF8E1', icon: Store },
-  buyer: { label: 'Buyer', color: '#1A7A5E', bg: '#E8F5F0', icon: ShoppingBag },
+  buyer: { label: 'Buyer', color: '#E85D04', bg: '#FFF2EB', icon: ShoppingBag },
 };
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending', color: '#E8820C', bg: '#FFF8E1', icon: RefreshCw },
-  approved: { label: 'Approved', color: '#1A7A5E', bg: '#E8F5F0', icon: CheckCircle },
+  approved: { label: 'Approved', color: '#E85D04', bg: '#FFF2EB', icon: CheckCircle },
   blocked: { label: 'Blocked', color: '#CC0000', bg: '#FEF2F2', icon: Ban },
 };
 
@@ -138,7 +138,7 @@ export default function AdminUsers() {
       {/* Filters */}
       <div className="space-y-4 mb-6">
         <div className="flex gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 flex-1 min-w-48 focus-within:border-[#1A7A5E] transition-colors">
+          <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 flex-1 min-w-48 focus-within:border-[#E85D04] transition-colors">
             <Search size={16} className="text-[#888888]" />
             <input
               type="text"
@@ -154,9 +154,9 @@ export default function AdminUsers() {
                 key={r}
                 onClick={() => setRoleFilter(r)}
                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors capitalize ${
-                  roleFilter === r ? 'text-white' : 'bg-white border border-[#CCCCCC] text-[#888888] hover:border-[#1A7A5E]'
+                  roleFilter === r ? 'text-white' : 'bg-white border border-[#CCCCCC] text-[#888888] hover:border-[#E85D04]'
                 }`}
-                style={roleFilter === r ? { backgroundColor: '#1A7A5E' } : {}}
+                style={roleFilter === r ? { backgroundColor: '#E85D04' } : {}}
               >
                 {r}
               </button>
@@ -171,12 +171,12 @@ export default function AdminUsers() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={`px-4 py-2 text-sm font-medium transition-all relative capitalize ${
-                statusFilter === s ? 'text-[#1A7A5E]' : 'text-[#888888] hover:text-[#444444]'
+                statusFilter === s ? 'text-[#E85D04]' : 'text-[#888888] hover:text-[#444444]'
               }`}
             >
               {s}
               {statusFilter === s && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A7A5E] rounded-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#E85D04] rounded-full" />
               )}
             </button>
           ))}
@@ -185,7 +185,7 @@ export default function AdminUsers() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
         </div>
       ) : users.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-[#CCCCCC]">
@@ -217,7 +217,7 @@ export default function AdminUsers() {
                         {user.avatar ? (
                           <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover border border-[#EEEEEE]" />
                         ) : (
-                          <div style={{ backgroundColor: '#1A7A5E' }} className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          <div style={{ backgroundColor: '#E85D04' }} className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold">
                             {user.name?.charAt(0)}
                           </div>
                         )}
@@ -257,7 +257,7 @@ export default function AdminUsers() {
                                 type="button"
                                 onClick={() => handleApprove(user)}
                                 disabled={!!actionLoading}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-white bg-[#1A7A5E] hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-60 shadow-sm"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-white bg-[#E85D04] hover:opacity-90 transition-opacity text-xs font-medium disabled:opacity-60 shadow-sm"
                               >
                                 <CheckCircle size={13} /> Approve
                               </button>
@@ -279,7 +279,7 @@ export default function AdminUsers() {
                                 type="button"
                                 onClick={() => handleUnblock(user)}
                                 disabled={!!actionLoading}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[#1A7A5E] border border-[#1A7A5E]/20 hover:bg-[#1A7A5E]/5 transition-colors text-xs font-medium disabled:opacity-60"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[#E85D04] border border-[#E85D04]/20 hover:bg-[#E85D04]/5 transition-colors text-xs font-medium disabled:opacity-60"
                               >
                                 <CheckCircle size={13} /> Unblock
                               </button>

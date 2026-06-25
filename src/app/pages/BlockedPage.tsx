@@ -66,7 +66,7 @@ export default function BlockedPage() {
 
             {/* Contact info */}
             <p className="mt-8 text-xs text-[#AAAAAA]">
-              If you believe this is a mistake, please reach out to our team at support@choufliya.ma
+              If you believe this is a mistake, please reach out to our team at support@jmlmaroc.ma
             </p>
           </div>
         </div>

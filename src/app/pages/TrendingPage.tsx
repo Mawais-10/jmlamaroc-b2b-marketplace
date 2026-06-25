@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { Radio, TrendingUp, Search as SearchIcon, Loader2, Heart } from 'lucide-react';
 import { apiGetProducts, ApiProduct } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { useTranslation } from '../i18n/useTranslation';
 
 const TIME_FILTERS = [
   { label: '3 days', days: 3 },
@@ -12,24 +13,30 @@ const TIME_FILTERS = [
 ];
 
 const HOT_CATEGORIES = [
-  { name: 'Shoes', count: '+7404' },
-  { name: 'Women\'s Clothing', count: '+3196' },
-  { name: 'Bags & Wallets', count: '+1906' },
-  { name: 'Perfume', count: '+1529' },
-  { name: 'Jewelry & Watches', count: '+1336' },
-  { name: 'Hair Care', count: '+1150' },
-  { name: 'Skincare', count: '+1001' },
-  { name: 'Sports & Fitness', count: '+701' },
-  { name: 'Automotive', count: '+629' },
-  { name: 'Baby Products', count: '+574' },
+  { id: 'Furniture', nameEN: 'Furniture', nameAR: 'الأثاث', nameFR: 'Meubles' },
+  { id: 'Fashion', nameEN: 'Fashion', nameAR: 'موضة', nameFR: 'Mode' },
+  { id: 'Home Decor', nameEN: 'Home Decor', nameAR: 'ديكور منزلي', nameFR: 'Décoration' },
+  { id: 'Kitchen & Dining', nameEN: 'Kitchen & Dining', nameAR: 'المطبخ والمائدة', nameFR: 'Cuisine & Salle' },
+  { id: 'Electronics', nameEN: 'Electronics', nameAR: 'الإلكترونيات', nameFR: 'Électronique' },
+  { id: 'Beauty', nameEN: 'Beauty', nameAR: 'العناية والتجميل', nameFR: 'Beauté' },
+  { id: 'Kids & Babies', nameEN: 'Kids & Babies', nameAR: 'الأطفال والرضع', nameFR: 'Enfants & Bébés' },
+  { id: 'Home & Living', nameEN: 'Home & Living', nameAR: 'المنزل والمعيشة', nameFR: 'Maison & Jardin' },
 ];
 
 export default function TrendingPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(7);
   const [activeCategory, setActiveCategory] = useState('All');
+
+  const TIME_FILTERS = [
+    { label: language === 'ar' ? '3 أيام' : language === 'fr' ? '3 jours' : '3 days', days: 3 },
+    { label: language === 'ar' ? '7 أيام' : language === 'fr' ? '7 jours' : '7 days', days: 7 },
+    { label: language === 'ar' ? '14 يوم' : language === 'fr' ? '14 jours' : '14 days', days: 14 },
+    { label: language === 'ar' ? '30 يوم' : language === 'fr' ? '30 jours' : '30 days', days: 30 },
+  ];
 
   useEffect(() => {
     fetchTrending();
@@ -65,9 +72,13 @@ export default function TrendingPage() {
             <div style={{ backgroundColor: '#FFF7ED' }} className="p-2 rounded-xl">
               <Radio size={24} className="text-[#E8820C]" />
             </div>
-            <h1 className="text-3xl font-bold text-[#111827]">Trend Radar</h1>
+            <h1 className="text-3xl font-bold text-[#111827]">
+              {language === 'ar' ? 'رادار الاتجاهات' : language === 'fr' ? 'Radar des Tendances' : 'Trend Radar'}
+            </h1>
           </div>
-          <p className="text-[#6B7280] text-lg mb-8">Products trending across suppliers right now</p>
+          <p className="text-[#6B7280] text-lg mb-8">
+            {language === 'ar' ? 'المنتجات الرائجة لدى الموردين الآن' : language === 'fr' ? 'Produits tendance chez les fournisseurs en ce moment' : 'Products trending across suppliers right now'}
+          </p>
 
           <div className="flex gap-3">
             {TIME_FILTERS.map(f => (
@@ -76,8 +87,8 @@ export default function TrendingPage() {
                 onClick={() => setDays(f.days)}
                 className={`px-6 py-2 rounded-full text-sm font-medium transition-all border ${
                   days === f.days 
-                    ? 'bg-[#1A7A5E] text-white border-[#1A7A5E]' 
-                    : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#1A7A5E]'
+                    ? 'bg-[#E85D04] text-white border-[#E85D04]' 
+                    : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#E85D04]'
                 }`}
               >
                 {f.label}
@@ -94,27 +105,34 @@ export default function TrendingPage() {
             <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
               <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
                 <TrendingUp size={18} className="text-[#E8820C]" />
-                <h3 className="font-bold text-[#111827]">Hot Categories</h3>
+                <h3 className="font-bold text-[#111827]">
+                  {language === 'ar' ? 'الفئات الرائجة' : language === 'fr' ? 'Catégories Populaires' : 'Hot Categories'}
+                </h3>
               </div>
               <div className="p-2">
-                {['All', ...HOT_CATEGORIES.map(c => c.name)].map(catName => {
-                  const hotCat = HOT_CATEGORIES.find(hc => hc.name === catName);
+                <button
+                  onClick={() => setActiveCategory('All')}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    activeCategory === 'All'
+                      ? 'bg-[#F0FDF4] text-[#E85D04]'
+                      : 'text-[#4B5563] hover:bg-gray-50'
+                  }`}
+                >
+                  <span>{language === 'ar' ? 'الكل' : language === 'fr' ? 'Tout' : 'All'}</span>
+                </button>
+                {HOT_CATEGORIES.map(cat => {
+                  const localizedName = language === 'ar' ? cat.nameAR : language === 'fr' ? cat.nameFR : cat.nameEN;
                   return (
                     <button
-                      key={catName}
-                      onClick={() => setActiveCategory(catName)}
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                        activeCategory === catName 
-                          ? 'bg-[#F0FDF4] text-[#1A7A5E]' 
+                        activeCategory === cat.id
+                          ? 'bg-[#F0FDF4] text-[#E85D04]'
                           : 'text-[#4B5563] hover:bg-gray-50'
                       }`}
                     >
-                      <span>{catName}</span>
-                      {hotCat && (
-                        <span className={`text-xs ${activeCategory === catName ? 'text-[#1A7A5E]' : 'text-[#9CA3AF]'}`}>
-                          {hotCat.count}
-                        </span>
-                      )}
+                      <span>{localizedName}</span>
                     </button>
                   );
                 })}
@@ -126,22 +144,28 @@ export default function TrendingPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-[#111827]">
-                {products.length} trending products
+                {products.length} {language === 'ar' ? 'منتج رائج' : language === 'fr' ? 'produits tendance' : 'trending products'}
               </h2>
             </div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32">
-                <Loader2 size={40} className="text-[#1A7A5E] animate-spin mb-4" />
-                <p className="text-[#6B7280] font-medium">Analyzing market trends...</p>
+                <Loader2 size={40} className="text-[#E85D04] animate-spin mb-4" />
+                <p className="text-[#6B7280] font-medium">
+                  {language === 'ar' ? 'جاري تحليل اتجاهات السوق...' : language === 'fr' ? 'Analyse des tendances du marché...' : 'Analyzing market trends...'}
+                </p>
               </div>
             ) : products.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#E5E7EB] p-12 text-center">
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <TrendingUp size={32} className="text-gray-300" />
                 </div>
-                <h3 className="text-lg font-bold text-[#111827] mb-2">No trending data for this period</h3>
-                <p className="text-[#6B7280]">Try selecting a longer time range or another category.</p>
+                <h3 className="text-lg font-bold text-[#111827] mb-2">
+                  {language === 'ar' ? 'لا توجد بيانات رائجة لهذه الفترة' : language === 'fr' ? 'Aucune donnée tendance pour cette période' : 'No trending data for this period'}
+                </h3>
+                <p className="text-[#6B7280]">
+                  {language === 'ar' ? 'حاول اختيار نطاق زمني أطول أو فئة أخرى.' : language === 'fr' ? 'Essayez de sélectionner une plage de temps plus longue ou une autre catégorie.' : 'Try selecting a longer time range or another category.'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -156,18 +180,18 @@ export default function TrendingPage() {
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="px-2 py-1 bg-[#F0FDF4] text-[#1A7A5E] text-[10px] font-bold rounded uppercase">
-                          {product.price ? `${product.price} ${product.currency}` : 'Price on request'}
+                        <div className="px-2 py-1 bg-[#F0FDF4] text-[#E85D04] text-[10px] font-bold rounded uppercase">
+                          {product.price ? `${product.price} ${product.currency}` : (language === 'ar' ? 'السعر عند الطلب' : language === 'fr' ? 'Prix sur demande' : 'Price on request')}
                         </div>
                         <div className="text-[11px] text-[#6B7280] flex items-center gap-1">
                           <Heart size={10} fill="#9CA3AF" stroke="none" />
-                          <span>{product.favoriteCount || 0} likes</span>
+                          <span>{product.favoriteCount || 0} {language === 'ar' ? 'إعجاب' : language === 'fr' ? 'j\'aime' : 'likes'}</span>
                         </div>
                       </div>
                       
                       <button 
                         onClick={() => navigate(`/groups/${product.storeHandle}`)}
-                        className="text-sm font-bold text-[#111827] hover:text-[#1A7A5E] transition-colors mb-2 block text-left"
+                        className="text-sm font-bold text-[#111827] hover:text-[#E85D04] transition-colors mb-2 block text-left"
                       >
                         @{product.storeName}
                       </button>
@@ -182,10 +206,10 @@ export default function TrendingPage() {
                         </div>
                         <button 
                           onClick={() => navigate(`/groups/${product.storeHandle}`)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-[#1A7A5E] hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-bold text-[#E85D04] hover:underline"
                         >
                           <SearchIcon size={14} />
-                          Find Suppliers
+                          {language === 'ar' ? 'ابحث عن موردين' : language === 'fr' ? 'Trouver des fournisseurs' : 'Find Suppliers'}
                         </button>
                       </div>
                     </div>

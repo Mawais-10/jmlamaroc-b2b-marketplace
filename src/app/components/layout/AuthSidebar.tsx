@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useState } from 'react';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const buyerMenuItems = [
   { label: 'Search', icon: Search, to: '/search' },
@@ -35,6 +36,7 @@ const accountItems = [
 
 export function AuthSidebar() {
   const { user, sidebarCollapsed, toggleSidebar, logout } = useApp();
+  const { language } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -44,14 +46,28 @@ export function AuthSidebar() {
   const isAdmin = user?.role === 'admin';
   const menuItems = isAdmin ? adminMenuItems : (isSupplier ? supplierMenuItems : buyerMenuItems);
 
+  const getLocalizedLabel = (label: string) => {
+    switch (label) {
+      case 'Search': return language === 'ar' ? 'بحث' : language === 'fr' ? 'Rechercher' : 'Search';
+      case 'Stores': return language === 'ar' ? 'المتاجر' : language === 'fr' ? 'Boutiques' : 'Stores';
+      case 'Trend Radar': return language === 'ar' ? 'رادار الصيحات' : language === 'fr' ? 'Radar des tendances' : 'Trend Radar';
+      case 'Collections': return language === 'ar' ? 'المجموعات' : language === 'fr' ? 'Collections' : 'Collections';
+      case 'Favorites': return language === 'ar' ? 'المفضلة' : language === 'fr' ? 'Favoris' : 'Favorites';
+      case 'My Store': return language === 'ar' ? 'متجري' : language === 'fr' ? 'Mon magasin' : 'My Store';
+      case 'Settings': return language === 'ar' ? 'الإعدادات' : language === 'fr' ? 'Paramètres' : 'Settings';
+      case 'Support': return language === 'ar' ? 'الدعم الفني' : language === 'fr' ? 'Support' : 'Support';
+      default: return label;
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
   const getRoleBadge = () => {
-    if (isAdmin) return { label: 'Admin', color: '#CC0000', bg: '#FEF2F2' };
-    if (isSupplier) return { label: 'Supplier', color: '#E8820C', bg: '#FFF8E1' };
+    if (isAdmin) return { label: language === 'ar' ? 'مدير' : language === 'fr' ? 'Admin' : 'Admin', color: '#CC0000', bg: '#FEF2F2' };
+    if (isSupplier) return { label: language === 'ar' ? 'مورد' : language === 'fr' ? 'Fournisseur' : 'Supplier', color: '#E8820C', bg: '#FFF8E1' };
     return null;
   };
 
@@ -60,17 +76,11 @@ export function AuthSidebar() {
   return (
     <div
       className="flex flex-col h-screen sticky top-0 transition-all duration-300 border-r border-[#CCCCCC] shrink-0"
-      style={{ backgroundColor: '#fff', width: sidebarCollapsed ? '64px' : '240px' }}
+      style={{ backgroundColor: '#fff', width: sidebarCollapsed ? '70px' : '240px' }}
     >
-      {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b border-[#CCCCCC]">
         <Link to="/" className="flex items-center gap-2 min-w-0">
-          <div style={{ backgroundColor: '#1A7A5E' }} className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-sm">C</span>
-          </div>
-          {!sidebarCollapsed && (
-            <span style={{ color: '#1A7A5E' }} className="text-lg font-bold tracking-tight truncate">ChouFliya</span>
-          )}
+          <img src="/images/Logo.png" alt="Logo" className="w-12 h-12 rounded-lg object-contain shrink-0" />
         </Link>
       </div>
 
@@ -78,38 +88,42 @@ export function AuthSidebar() {
       <div className="flex-1 overflow-y-auto py-4 px-2">
         {/* MENU section */}
         {!sidebarCollapsed && (
-          <p className="text-xs font-semibold text-[#888888] uppercase tracking-wider px-3 mb-2">Menu</p>
+          <p className="text-xs font-semibold text-[#888888] uppercase tracking-wider px-3 mb-2">
+            {language === 'ar' ? 'القائمة' : language === 'fr' ? 'Menu' : 'Menu'}
+          </p>
         )}
         <nav className="space-y-0.5 mb-6">
           {menuItems.map(({ label, icon: Icon, to }) => (
             <Link
               key={to}
               to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(to) ? 'text-white' : 'text-[#444444] hover:bg-[#E8F5F0] hover:text-[#1A7A5E]'}`}
-              style={isActive(to) ? { backgroundColor: '#1A7A5E' } : {}}
-              title={sidebarCollapsed ? label : undefined}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(to) ? 'text-white' : 'text-[#444444] hover:bg-[#FFF2EB] hover:text-[#E85D04]'}`}
+              style={isActive(to) ? { backgroundColor: '#E85D04' } : {}}
+              title={sidebarCollapsed ? getLocalizedLabel(label) : undefined}
             >
               <Icon size={18} className="shrink-0" />
-              {!sidebarCollapsed && <span className="text-sm font-medium">{label}</span>}
+              {!sidebarCollapsed && <span className="text-sm font-medium">{getLocalizedLabel(label)}</span>}
             </Link>
           ))}
         </nav>
 
         {/* ACCOUNT section */}
         {!sidebarCollapsed && (
-          <p className="text-xs font-semibold text-[#888888] uppercase tracking-wider px-3 mb-2">Account</p>
+          <p className="text-xs font-semibold text-[#888888] uppercase tracking-wider px-3 mb-2">
+            {language === 'ar' ? 'الحساب' : language === 'fr' ? 'Compte' : 'Account'}
+          </p>
         )}
         <nav className="space-y-0.5">
           {accountItems.map(({ label, icon: Icon, to }) => (
             <Link
               key={to}
               to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(to) ? 'text-white' : 'text-[#444444] hover:bg-[#E8F5F0] hover:text-[#1A7A5E]'}`}
-              style={isActive(to) ? { backgroundColor: '#1A7A5E' } : {}}
-              title={sidebarCollapsed ? label : undefined}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(to) ? 'text-white' : 'text-[#444444] hover:bg-[#FFF2EB] hover:text-[#E85D04]'}`}
+              style={isActive(to) ? { backgroundColor: '#E85D04' } : {}}
+              title={sidebarCollapsed ? getLocalizedLabel(label) : undefined}
             >
               <Icon size={18} className="shrink-0" />
-              {!sidebarCollapsed && <span className="text-sm font-medium">{label}</span>}
+              {!sidebarCollapsed && <span className="text-sm font-medium">{getLocalizedLabel(label)}</span>}
             </Link>
           ))}
 
@@ -118,10 +132,10 @@ export function AuthSidebar() {
             <Link
               to="/admin"
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#444444] hover:bg-red-50 hover:text-red-600 transition-colors"
-              title={sidebarCollapsed ? 'Admin Panel' : undefined}
+              title={sidebarCollapsed ? (language === 'ar' ? 'لوحة التحكم' : language === 'fr' ? 'Panneau Admin' : 'Admin Panel') : undefined}
             >
               <Shield size={18} className="shrink-0 text-red-500" />
-              {!sidebarCollapsed && <span className="text-sm font-medium">Admin Panel</span>}
+              {!sidebarCollapsed && <span className="text-sm font-medium">{language === 'ar' ? 'لوحة التحكم' : language === 'fr' ? 'Panneau Admin' : 'Admin Panel'}</span>}
             </Link>
           )}
 
@@ -129,20 +143,29 @@ export function AuthSidebar() {
           {!isSupplier && !isAdmin && (
             <Link
               to="/apply-supplier"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#444444] hover:bg-[#E8F5F0] hover:text-[#1A7A5E] transition-colors"
-              title={sidebarCollapsed ? 'Become a Supplier' : undefined}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#444444] hover:bg-[#FFF2EB] hover:text-[#E85D04] transition-colors"
+              title={sidebarCollapsed ? (language === 'ar' ? 'كن مورداً' : language === 'fr' ? 'Devenir fournisseur' : 'Become a Supplier') : undefined}
             >
               <Plus size={18} className="shrink-0" />
-              {!sidebarCollapsed && <span className="text-sm font-medium">Become a Supplier</span>}
+              {!sidebarCollapsed && <span className="text-sm font-medium">{language === 'ar' ? 'كن مورداً' : language === 'fr' ? 'Devenir fournisseur' : 'Become a Supplier'}</span>}
             </Link>
           )}
 
           <button
             onClick={toggleSidebar}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#444444] hover:bg-[#E8F5F0] hover:text-[#1A7A5E] transition-colors"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#444444] hover:bg-[#FFF2EB] hover:text-[#E85D04] transition-colors"
+            title={sidebarCollapsed ? (language === 'ar' ? 'توسيع الشريط الجانبي' : language === 'fr' ? 'Agrandir la barre' : 'Expand sidebar') : (language === 'ar' ? 'تصغير الشريط الجانبي' : language === 'fr' ? 'Réduire la barre' : 'Collapse sidebar')}
           >
-            {sidebarCollapsed ? <ChevronsRight size={18} className="shrink-0" /> : <><ChevronsLeft size={18} className="shrink-0" /><span className="text-sm font-medium">Collapse</span></>}
+            {sidebarCollapsed ? (
+              <ChevronsRight size={18} className="shrink-0" />
+            ) : (
+              <>
+                <ChevronsLeft size={18} className="shrink-0" />
+                <span className="text-sm font-medium">
+                  {language === 'ar' ? 'تصغير' : language === 'fr' ? 'Réduire' : 'Collapse'}
+                </span>
+              </>
+            )}
           </button>
         </nav>
       </div>
@@ -152,13 +175,13 @@ export function AuthSidebar() {
         <div className="relative">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[#E8F5F0] transition-colors"
+            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[#FFF2EB] transition-colors"
           >
             {user?.avatar ? (
               <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
               <div
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
               >
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -185,14 +208,14 @@ export function AuthSidebar() {
           {userMenuOpen && !sidebarCollapsed && (
             <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-[#CCCCCC] rounded-lg shadow-lg overflow-hidden z-50">
               <Link to="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm text-[#444444] hover:bg-[#F5F5F5] transition-colors">
-                <Settings size={15} /> Settings
+                <Settings size={15} /> {language === 'ar' ? 'الإعدادات' : language === 'fr' ? 'Paramètres' : 'Settings'}
               </Link>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
               >
                 <LogOut size={16} />
-                <span>Sign Out</span>
+                <span>{language === 'ar' ? 'تسجيل الخروج' : language === 'fr' ? 'Déconnexion' : 'Sign Out'}</span>
               </button>
             </div>
           )}
@@ -203,10 +226,11 @@ export function AuthSidebar() {
 }
 
 export function AuthTopBar() {
-  const { 
-    user, logout, notifications, unreadNotifications, 
-    markNotificationRead, markAllNotificationsRead 
+  const {
+    user, logout, notifications, unreadNotifications,
+    markNotificationRead, markAllNotificationsRead
   } = useApp();
+  const { language } = useTranslation();
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -220,7 +244,7 @@ export function AuthTopBar() {
 
   return (
     <div className="h-14 bg-white border-b border-[#CCCCCC] flex items-center justify-end px-6 gap-3 shrink-0 relative">
-      {/* <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#1A7A5E] transition-colors px-2 py-1 rounded">
+      {/* <button className="flex items-center gap-1 text-sm text-[#444444] hover:text-[#E85D04] transition-colors px-2 py-1 rounded">
         <Globe size={15} />
         <span>EN</span>
         <ChevronDown size={13} />
@@ -228,14 +252,14 @@ export function AuthTopBar() {
 
       {/* Notifications */}
       <div className="relative">
-        <button 
+        <button
           onClick={() => setNotifOpen(!notifOpen)}
-          className="p-2 rounded-lg hover:bg-[#E8F5F0] text-[#444444] hover:text-[#1A7A5E] transition-colors relative"
+          className="p-2 rounded-lg hover:bg-[#FFF2EB] text-[#444444] hover:text-[#E85D04] transition-colors relative"
         >
           <Bell size={18} />
           {unreadNotifications > 0 && (
-            <span 
-              className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm" 
+            <span
+              className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
               style={{ backgroundColor: '#EF4444' }}
             >
               {unreadNotifications}
@@ -248,13 +272,15 @@ export function AuthTopBar() {
             <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
             <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xl z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-[#F1F5F9] flex items-center justify-between bg-gray-50/50">
-                <h3 className="text-sm font-bold text-[#1E293B]">Notifications</h3>
+                <h3 className="text-sm font-bold text-[#1E293B]">
+                  {language === 'ar' ? 'الإشعارات' : language === 'fr' ? 'Notifications' : 'Notifications'}
+                </h3>
                 {unreadNotifications > 0 && (
-                  <button 
+                  <button
                     onClick={markAllNotificationsRead}
-                    className="text-xs font-medium text-[#1A7A5E] hover:underline"
+                    className="text-xs font-medium text-[#E85D04] hover:underline"
                   >
-                    Mark all read
+                    {language === 'ar' ? 'تحديد الكل كمقروء' : language === 'fr' ? 'Tout marquer comme lu' : 'Mark all read'}
                   </button>
                 )}
               </div>
@@ -262,23 +288,24 @@ export function AuthTopBar() {
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
                     <Bell size={32} className="mx-auto mb-2 text-[#CBD5E1]" />
-                    <p className="text-sm text-[#64748B]">No notifications yet</p>
+                    <p className="text-sm text-[#64748B]">
+                      {language === 'ar' ? 'لا توجد إشعارات بعد' : language === 'fr' ? 'Aucune notification pour le moment' : 'No notifications yet'}
+                    </p>
                   </div>
                 ) : (
                   notifications.map(n => (
-                    <button 
+                    <button
                       key={n._id}
                       onClick={() => handleNotifClick(n)}
-                      className={`w-full text-left px-4 py-3 border-b border-[#F1F5F9] hover:bg-gray-50 transition-colors flex gap-3 ${!n.isRead ? 'bg-[#E8F5F0]/20' : ''}`}
+                      className={`w-full text-left px-4 py-3 border-b border-[#F1F5F9] hover:bg-gray-50 transition-colors flex gap-3 ${!n.isRead ? 'bg-[#FFF2EB]/20' : ''}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                        n.type === 'success' ? 'bg-green-100 text-green-600' :
-                        n.type === 'error' ? 'bg-red-100 text-red-600' :
-                        n.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {n.type === 'success' ? <CheckCircle2 size={16} /> : 
-                         n.type === 'error' ? <AlertCircle size={16} /> :
-                         n.type === 'warning' ? <AlertCircle size={16} /> : <Zap size={16} />}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.type === 'success' ? 'bg-green-100 text-green-600' :
+                          n.type === 'error' ? 'bg-red-100 text-red-600' :
+                            n.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                        {n.type === 'success' ? <CheckCircle2 size={16} /> :
+                          n.type === 'error' ? <AlertCircle size={16} /> :
+                            n.type === 'warning' ? <AlertCircle size={16} /> : <Zap size={16} />}
                       </div>
                       <div className="min-w-0">
                         <p className={`text-sm font-bold truncate ${!n.isRead ? 'text-[#1E293B]' : 'text-[#64748B]'}`}>{n.title}</p>
@@ -286,7 +313,7 @@ export function AuthTopBar() {
                         <p className="text-[10px] text-[#94A3B8] mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
                       </div>
                       {!n.isRead && (
-                        <div className="w-2 h-2 rounded-full bg-[#1A7A5E] mt-2 shrink-0" />
+                        <div className="w-2 h-2 rounded-full bg-[#E85D04] mt-2 shrink-0" />
                       )}
                     </button>
                   ))
@@ -299,12 +326,12 @@ export function AuthTopBar() {
 
       <button
         onClick={() => navigate('/settings')}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#E8F5F0] transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#FFF2EB] transition-colors"
       >
         {user?.avatar ? (
           <img src={user.avatar} alt="" className="w-7 h-7 rounded-full object-cover" />
         ) : (
-          <div style={{ backgroundColor: '#1A7A5E' }} className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div style={{ backgroundColor: '#E85D04' }} className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
         )}

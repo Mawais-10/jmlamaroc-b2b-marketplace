@@ -73,7 +73,7 @@ export default function SupplierApplyPage() {
   if (checkLoading) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -101,8 +101,8 @@ export default function SupplierApplyPage() {
           )}
           {existingRequest.status === 'approved' && (
             <>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#E8F5F0' }}>
-                <CheckCircle size={32} style={{ color: '#1A7A5E' }} />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FFF2EB' }}>
+                <CheckCircle size={32} style={{ color: '#E85D04' }} />
               </div>
               <h2 className="text-xl font-bold text-[#1A1A1A] mb-2">Application Approved! 🎉</h2>
               <p className="text-[#888888] text-sm mb-6">
@@ -112,7 +112,7 @@ export default function SupplierApplyPage() {
               <button
                 onClick={() => navigate('/store/dashboard')}
                 className="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: '#1A7A5E' }}
+                style={{ backgroundColor: '#E85D04' }}
               >
                 Go to My Store Dashboard
               </button>
@@ -147,12 +147,12 @@ export default function SupplierApplyPage() {
       <div className="bg-white border-b border-[#CCCCCC] px-6 py-5">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
-            <div style={{ backgroundColor: '#E8F5F0' }} className="p-2 rounded-xl">
-              <Store size={22} style={{ color: '#1A7A5E' }} />
+            <div style={{ backgroundColor: '#FFF2EB' }} className="p-2 rounded-xl">
+              <Store size={22} style={{ color: '#E85D04' }} />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[#1A1A1A]">Become a Supplier</h1>
-              <p className="text-sm text-[#888888]">Apply to list your wholesale business on ChouFliya</p>
+              <p className="text-sm text-[#888888]">Apply to list your wholesale business on JML Maroc</p>
             </div>
           </div>
         </div>
@@ -160,10 +160,10 @@ export default function SupplierApplyPage() {
 
       <div className="max-w-2xl mx-auto px-6 py-8">
         {/* Info banner */}
-        {/* <div className="flex items-start gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: '#E8F5F0', borderLeft: '4px solid #1A7A5E' }}>
-          <AlertCircle size={18} style={{ color: '#1A7A5E' }} className="shrink-0 mt-0.5" />
+        {/* <div className="flex items-start gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: '#FFF2EB', borderLeft: '4px solid #E85D04' }}>
+          <AlertCircle size={18} style={{ color: '#E85D04' }} className="shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium" style={{ color: '#1A7A5E' }}>How it works</p>
+            <p className="text-sm font-medium" style={{ color: '#E85D04' }}>How it works</p>
             <p className="text-xs text-[#444444] mt-1">
               Fill out this form → Our admin reviews your application (usually within 24h) → If approved, you'll get access to your supplier dashboard where you can set up your store, upload products via Cloudinary, and set your Telegram/WhatsApp contact.
             </p>
@@ -184,7 +184,7 @@ export default function SupplierApplyPage() {
               value={form.businessName}
               onChange={handleChange}
               placeholder="e.g. Atlas Fashion House"
-              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors"
+              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors"
             />
           </div>
 
@@ -194,8 +194,8 @@ export default function SupplierApplyPage() {
               <AtSign size={14} className="inline mr-1.5" />
               Store Handle (URL) <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#1A7A5E] transition-colors">
-              <span className="px-3 py-3 bg-[#F5F5F5] text-sm text-[#888888] border-r border-[#CCCCCC]">choufliya.ma/@</span>
+            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#E85D04] transition-colors">
+              <span className="px-3 py-3 bg-[#F5F5F5] text-sm text-[#888888] border-r border-[#CCCCCC]">jmlmaroc.ma/@</span>
               <input
                 name="storeHandle"
                 value={form.storeHandle}
@@ -217,7 +217,7 @@ export default function SupplierApplyPage() {
               onChange={handleChange}
               placeholder="Describe your wholesale business, products, specialties..."
               rows={3}
-              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors resize-none"
+              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors resize-none"
             />
           </div>
 
@@ -232,7 +232,7 @@ export default function SupplierApplyPage() {
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors bg-white"
+                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors bg-white"
               >
                 <option value="">Select category</option>
                 {CATEGORIES.filter(c => c.id !== 'all').map(c => (
@@ -249,7 +249,7 @@ export default function SupplierApplyPage() {
                 name="city"
                 value={form.city}
                 onChange={handleChange}
-                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors bg-white"
+                className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors bg-white"
               >
                 <option value="">Select city</option>
                 {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -266,7 +266,7 @@ export default function SupplierApplyPage() {
               <Phone size={14} className="inline mr-1.5 text-[#25D366]" />
               WhatsApp Number <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#1A7A5E] transition-colors">
+            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#E85D04] transition-colors">
               <span className="px-3 py-3 bg-[#F5F5F5] text-sm text-[#888888] border-r border-[#CCCCCC]">+212</span>
               <input
                 name="whatsappNumber"
@@ -285,7 +285,7 @@ export default function SupplierApplyPage() {
               <Send size={14} className="inline mr-1.5 text-[#229ED9]" />
               Telegram Username (optional)
             </label>
-            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#1A7A5E] transition-colors">
+            <div className="flex items-center border border-[#CCCCCC] rounded-xl overflow-hidden focus-within:border-[#E85D04] transition-colors">
               <span className="px-3 py-3 bg-[#F5F5F5] text-sm text-[#888888] border-r border-[#CCCCCC]">@</span>
               <input
                 name="telegramHandle"
@@ -306,7 +306,7 @@ export default function SupplierApplyPage() {
               onChange={handleChange}
               placeholder="Any additional information for the admin..."
               rows={2}
-              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A7A5E] transition-colors resize-none"
+              className="w-full border border-[#CCCCCC] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E85D04] transition-colors resize-none"
             />
           </div>
 
@@ -314,7 +314,7 @@ export default function SupplierApplyPage() {
             type="submit"
             disabled={loading}
             className="w-full py-3.5 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#1A7A5E' }}
+            style={{ backgroundColor: '#E85D04' }}
           >
             {loading ? (
               <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Submitting...</>

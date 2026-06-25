@@ -56,14 +56,28 @@ app.use((req, _res, next) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/stores', protect, requireApproved, storeRoutes);
-app.use('/api/products', protect, requireApproved, productRoutes);
+app.use('/api/stores', storeRoutes);
+app.use('/api/products', productRoutes);
 app.use('/api/supplier', protect, requireApproved, supplierRoutes);
 app.use('/api/admin', adminRoutes); // adminRoutes already has its own protection
-app.use('/api/search', protect, requireApproved, searchRoutes);
+app.use('/api/search', searchRoutes);
 app.use('/api/notifications', protect, requireApproved, notificationRoutes);
 app.use('/api/support', protect, requireApproved, supportRoutes);
 app.use('/api/collections', protect, requireApproved, collectionRoutes);
+
+// Public Site Settings
+const SiteSettings = require('./models/SiteSettings');
+app.get('/api/settings', async (req, res) => {
+  try {
+    let settings = await SiteSettings.findOne({ key: 'general' });
+    if (!settings) {
+      settings = await SiteSettings.create({ key: 'general' });
+    }
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching settings.' });
+  }
+});
 
 // Health check
 app.get('/api/health', (_req, res) => {

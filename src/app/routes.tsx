@@ -13,6 +13,8 @@ import CollectionDetailPage from './pages/CollectionDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import SupportPage from './pages/SupportPage';
 import AboutPage from './pages/AboutPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SupplierApplyPage from './pages/SupplierApplyPage';
 import SupplierDashboard from './pages/SupplierDashboard';
@@ -41,6 +43,8 @@ export const router = createBrowserRouter([
       { path: 'login', Component: LoginPage },
       { path: 'register', Component: RegisterPage },
       { path: 'about', Component: AboutPage },
+      { path: 'privacy', Component: PrivacyPage },
+      { path: 'terms', Component: TermsPage },
       { path: 'favorites', Component: FavoritesPage },
       { path: 'collections', Component: CollectionsPage },
       { path: 'collections/:id', Component: CollectionDetailPage },

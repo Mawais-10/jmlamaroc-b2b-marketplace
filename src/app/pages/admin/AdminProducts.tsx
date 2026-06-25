@@ -52,7 +52,7 @@ export default function AdminProducts() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 mb-5 focus-within:border-[#1A7A5E] transition-colors">
+      <div className="flex items-center gap-2 bg-white border border-[#CCCCCC] rounded-xl px-4 py-2.5 mb-5 focus-within:border-[#E85D04] transition-colors">
         <Search size={16} className="text-[#888888]" />
         <input
           type="text"
@@ -65,7 +65,7 @@ export default function AdminProducts() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1A7A5E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#E85D04] border-t-transparent rounded-full" />
         </div>
       ) : products.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-[#CCCCCC]">
@@ -96,7 +96,7 @@ export default function AdminProducts() {
                 <p className="text-sm font-medium text-[#1A1A1A] truncate">{product.description || product.title || '—'}</p>
                 <p className="text-xs text-[#888888]">{product.category}</p>
                 {product.price ? (
-                  <p className="text-sm font-bold mt-1" style={{ color: '#1A7A5E' }}>{product.price} {product.currency}</p>
+                  <p className="text-sm font-bold mt-1" style={{ color: '#E85D04' }}>{product.price} {product.currency}</p>
                 ) : (
                   <p className="text-xs text-[#888888] mt-1">Price on request</p>
                 )}
