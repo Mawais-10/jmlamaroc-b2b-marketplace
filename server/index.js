@@ -20,10 +20,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // CORS - allow both frontend and admin panel
 const allowedOrigins = [
-  // Production
-  'https://wayzo.net',
-  'https://www.wayzo.net',
-  'https://api.wayzo.net',
+
   // From env (for flexibility)
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
