@@ -1,6 +1,6 @@
-#  ChouFliya - Premium Wholesale Marketplace
+#  jmlamaroc - Premium Wholesale Marketplace
 
-ChouFliya is a high-performance, full-stack wholesale marketplace designed to connect suppliers and buyers with a seamless, AI-powered experience. Built with a focus on speed, security, and visual discovery.
+jmlamaroc is a high-performance, full-stack wholesale marketplace designed to connect suppliers and buyers with a seamless, AI-powered experience. Built with a focus on speed, security, and visual discovery.
 
 ![ChouFliya Preview](https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80)
 
