@@ -12,6 +12,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { useTranslation } from '../i18n/useTranslation';
+import { CATEGORIES } from '../data/mockData';
 import ProductDetailModal from '../components/ui/ProductDetailModal';
 
 // ─── Product Card (reference-image style) ─────────────────────────────────────
@@ -189,7 +190,14 @@ export default function SearchPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+
+  // Sync state with URL search params (essential for back/forward navigation and header link clicks)
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+    setCategory(searchParams.get('category') || '');
+  }, [searchParams]);
 
   // Restore session
   useEffect(() => {
@@ -213,6 +221,35 @@ export default function SearchPage() {
       })();
     }
   }, [searchParams]);
+
+  const getLocalizedCategoryName = (name: string) => {
+    switch (name) {
+      case "Women's Clothing": return language === 'ar' ? 'ملابس نسائية' : language === 'fr' ? 'Vêtements pour femmes' : "Women's Clothing";
+      case 'Shoes': return language === 'ar' ? 'أحذية' : language === 'fr' ? 'Chaussures' : 'Shoes';
+      case 'Jewelry': return language === 'ar' ? 'مجوهرات' : language === 'fr' ? 'Bijoux' : 'Jewelry';
+      case 'Bags': return language === 'ar' ? 'حقائب' : language === 'fr' ? 'Sacs' : 'Bags';
+      case "Men's Clothing": return language === 'ar' ? 'ملابس رجالية' : language === 'fr' ? 'Vêtements pour hommes' : "Men's Clothing";
+      case 'Perfume': return language === 'ar' ? 'عطور' : language === 'fr' ? 'Parfums' : 'Perfume';
+      case 'Kitchen Tools': return language === 'ar' ? 'أدوات المطبخ' : language === 'fr' ? 'Ustensiles de cuisine' : 'Kitchen Tools';
+      case 'Skincare': return language === 'ar' ? 'العناية بالبشرة' : language === 'fr' ? 'Soins de la peau' : 'Skincare';
+      case "Kids' Clothing": return language === 'ar' ? 'ملابس أطفال' : language === 'fr' ? 'Vêtements pour enfants' : "Kids' Clothing";
+      case 'Kitchen Appliances': return language === 'ar' ? 'أجهزة المطبخ' : language === 'fr' ? 'Électroménager' : 'Kitchen Appliances';
+      case 'Hair Care': return language === 'ar' ? 'العناية بالشعر' : language === 'fr' ? 'Soins capillaires' : 'Hair Care';
+      case 'Bathroom': return language === 'ar' ? 'الحمام' : language === 'fr' ? 'Salle de bain' : 'Bathroom';
+      case 'Bedding': return language === 'ar' ? 'المفروشات' : language === 'fr' ? 'Literie' : 'Bedding';
+      case 'Automotive': return language === 'ar' ? 'السيارات' : language === 'fr' ? 'Automobile' : 'Automotive';
+      case 'Furniture': return language === 'ar' ? 'الأثاث' : language === 'fr' ? 'Meubles' : 'Furniture';
+      case 'Fashion': return language === 'ar' ? 'موضة' : language === 'fr' ? 'Mode' : 'Fashion';
+      case 'Home Decor': return language === 'ar' ? 'ديكور منزلي' : language === 'fr' ? 'Décoration' : 'Home Decor';
+      case 'Kitchen & Dining': return language === 'ar' ? 'المطبخ والمائدة' : language === 'fr' ? 'Cuisine & Salle' : 'Kitchen & Dining';
+      case 'Electronics': return language === 'ar' ? 'الإلكترونيات' : language === 'fr' ? 'Électronique' : 'Electronics';
+      case 'Beauty': return language === 'ar' ? 'العناية والتجميل' : language === 'fr' ? 'Beauté' : 'Beauty';
+      case 'Kids & Babies': return language === 'ar' ? 'الأطفال والرضع' : language === 'fr' ? 'Enfants & Bébés' : 'Kids & Babies';
+      case 'Home & Living': return language === 'ar' ? 'المنزل والمعيشة' : language === 'fr' ? 'Maison & Jardin' : 'Home & Living';
+      default: return name;
+    }
+  };
+
 
   useEffect(() => { fetchStores(); }, []);
 
@@ -391,6 +428,51 @@ export default function SearchPage() {
                 {stores.map(s => (
                   <button key={s._id} onClick={() => { setSelectedStore(s._id); setShowStoreDropdown(false); }} className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50">
                     {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Category filter */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-[#E2E8F0] rounded-lg text-sm text-[#555] hover:border-[#E85D04] transition-colors"
+            >
+              <LayoutGrid size={14} className="text-[#E85D04]" />
+              <span className="max-w-[120px] truncate">
+                {category ? getLocalizedCategoryName(category) : (language === 'ar' ? 'جميع الفئات' : language === 'fr' ? 'Toutes les catégories' : 'All categories')}
+              </span>
+              <ChevronDown size={13} className={`text-gray-400 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showCategoryDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto py-1 min-w-[180px]">
+                <button 
+                  onClick={() => { 
+                    setCategory(''); 
+                    setShowCategoryDropdown(false);
+                    const p = new URLSearchParams(searchParams);
+                    p.delete('category');
+                    setSearchParams(p);
+                  }} 
+                  className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50"
+                >
+                  {language === 'ar' ? 'جميع الفئات' : language === 'fr' ? 'Toutes les catégories' : 'All categories'}
+                </button>
+                {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                  <button 
+                    key={c.id} 
+                    onClick={() => { 
+                      setCategory(c.name); 
+                      setShowCategoryDropdown(false);
+                      const p = new URLSearchParams(searchParams);
+                      p.set('category', c.name);
+                      setSearchParams(p);
+                    }} 
+                    className="w-full text-left px-4 py-2 text-sm text-[#333] hover:bg-gray-50"
+                  >
+                    {getLocalizedCategoryName(c.name)}
                   </button>
                 ))}
               </div>

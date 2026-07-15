@@ -394,7 +394,7 @@ export default function LandingPage() {
             {LANDING_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => navigate(`/search?q=${encodeURIComponent(cat.name)}`)}
+                onClick={() => navigate(`/search?category=${encodeURIComponent(cat.name)}`)}
                 className="flex flex-col items-center justify-center gap-2.5 p-4 bg-white rounded-2xl border border-[#E8E8E8] hover:border-[#E85D04] hover:shadow-md transition-all group"
                 style={{ minHeight: '100px' }}
               >
@@ -628,7 +628,7 @@ export default function LandingPage() {
                   "Jewelry", "Skincare", "Perfume", "Kitchen Tools",
                 ].map(cat => (
                   <li key={cat}>
-                    <Link to={`/search?q=${encodeURIComponent(cat)}`} className="text-sm text-[#888888] hover:text-[#E85D04] transition-colors flex items-center gap-2">
+                    <Link to={`/search?category=${encodeURIComponent(cat)}`} className="text-sm text-[#888888] hover:text-[#E85D04] transition-colors flex items-center gap-2">
                       <span style={{ color: '#E85D04' }}>›</span> {getLocalizedCategoryName(cat)}
                     </Link>
                   </li>
