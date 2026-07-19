@@ -17,6 +17,11 @@ const productSchema = new mongoose.Schema({
   views: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
   vector: { type: [Number], default: [] },
+  // Telegram import fields
+  source: { type: String, enum: ['manual', 'telegram'], default: 'manual' },
+  sourceChannel: { type: String, default: '' },
+  sourceMessageId: { type: Number, default: null },
+  needsReview: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // Index for search
@@ -24,5 +29,6 @@ productSchema.index({ description: 'text', title: 'text', storeName: 'text', cat
 productSchema.index({ store: 1, isActive: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ createdAt: -1 });
+productSchema.index({ sourceMessageId: 1, sourceChannel: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Product', productSchema);

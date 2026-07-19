@@ -19,6 +19,11 @@ const storeSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   followerCount: { type: Number, default: 0 },
   productCount: { type: Number, default: 0 },
+  // Telegram sync tracking
+  telegramSyncStatus: { type: String, enum: ['idle', 'syncing', 'completed', 'failed'], default: 'idle' },
+  telegramSyncProgress: { type: Number, default: 0 },
+  telegramSyncError: { type: String, default: '' },
+  lastTelegramSync: { type: Date, default: null },
 }, { timestamps: true });
 
 // Update product count middleware

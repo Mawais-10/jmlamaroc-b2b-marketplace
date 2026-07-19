@@ -13,6 +13,7 @@ const searchRoutes = require('./routes/search');
 const notificationRoutes = require('./routes/notifications');
 const supportRoutes = require('./routes/support');
 const collectionRoutes = require('./routes/collections');
+const telegramRoutes = require('./routes/telegram');
 const { protect, requireApproved } = require('./middleware/auth');
 
 const app = express();
@@ -61,6 +62,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/notifications', protect, requireApproved, notificationRoutes);
 app.use('/api/support', protect, requireApproved, supportRoutes);
 app.use('/api/collections', protect, requireApproved, collectionRoutes);
+app.use('/api/supplier', protect, requireApproved, telegramRoutes);
 
 // Public Site Settings
 const SiteSettings = require('./models/SiteSettings');

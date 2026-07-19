@@ -46,3 +46,9 @@ temp/
 
 # Secrets
 src/imports/client_secret_*.json
+
+# Telegram Service
+telegram-service/.env
+telegram-service/__pycache__/
+telegram-service/*.session
+telegram-service/venv/

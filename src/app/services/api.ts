@@ -175,6 +175,26 @@ export const apiUpdateProduct = (id: string, data: Partial<ApiProduct>) =>
 export const apiDeleteProduct = (id: string) =>
   request<{ success: boolean; message: string }>(`/supplier/products/${id}`, { method: 'DELETE' });
 
+// ─── Telegram Integration ────────────────────────────────────────────────────
+
+export const apiConnectTelegram = (channelUsername: string) =>
+  request<{ success: boolean; message: string; syncStatus: string }>('/supplier/connect-telegram', {
+    method: 'POST',
+    body: JSON.stringify({ channelUsername }),
+  });
+
+export const apiGetTelegramSyncStatus = () =>
+  request<{
+    success: boolean;
+    syncStatus: string;
+    syncProgress: number;
+    syncError: string;
+    lastSync: string | null;
+    telegramHandle: string;
+    telegramProductCount: number;
+    needsReviewCount: number;
+  }>('/supplier/telegram-sync-status');
+
 // ─── Admin ───────────────────────────────────────────────────────────────────
 
 export const apiAdminStats = () =>
@@ -384,6 +404,10 @@ export interface ApiStore {
   isApproved: boolean;
   previewProducts?: { imageUrl: string }[];
   createdAt: string;
+  telegramSyncStatus?: string;
+  telegramSyncProgress?: number;
+  telegramSyncError?: string;
+  lastTelegramSync?: string;
 }
 
 export interface ApiProduct {
@@ -402,6 +426,10 @@ export interface ApiProduct {
   tags: string[];
   isActive: boolean;
   createdAt: string;
+  source?: string;
+  sourceChannel?: string;
+  sourceMessageId?: number;
+  needsReview?: boolean;
 }
 
 export interface ApiSupplierRequest {
