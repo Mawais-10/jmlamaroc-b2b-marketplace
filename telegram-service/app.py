@@ -12,6 +12,7 @@ import json
 from datetime import datetime
 
 from dotenv import load_dotenv
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
@@ -21,6 +22,7 @@ from telethon.tl.functions.channels import GetFullChannelRequest
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "https://jmlamaroc.com"]}})
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 API_ID = int(os.getenv('TELEGRAM_API_ID', '0'))

@@ -21,6 +21,11 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // CORS - allow both frontend and admin panel
 const allowedOrigins = [
+  'http://localhost:5002',
+  'http://localhost:5000',
+  'http://localhost',
+  'https://jmlamaroc.com',
+  'https://www.jmlamaroc.com',
 
   // From env (for flexibility)
   process.env.FRONTEND_URL,
