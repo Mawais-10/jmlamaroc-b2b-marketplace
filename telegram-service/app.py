@@ -28,7 +28,7 @@ CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "https://jmlam
 API_ID = int(os.getenv('TELEGRAM_API_ID', '0'))
 API_HASH = os.getenv('TELEGRAM_API_HASH', '')
 SESSION_STRING = os.getenv('SESSION_STRING', '')
-PORT = int(os.getenv('PORT', '5001'))
+PORT = int(os.getenv('PORT', '5002'))
 
 if not API_ID or not API_HASH or not SESSION_STRING:
     print("WARNING: TELEGRAM_API_ID, TELEGRAM_API_HASH, or SESSION_STRING not set in .env")
