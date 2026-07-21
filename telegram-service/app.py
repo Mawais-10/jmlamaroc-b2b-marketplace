@@ -34,9 +34,28 @@ if not API_ID or not API_HASH or not SESSION_STRING:
     print("WARNING: TELEGRAM_API_ID, TELEGRAM_API_HASH, or SESSION_STRING not set in .env")
 
 
-def get_client():
-    """Create a new TelegramClient from session string."""
-    return TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+import threading
+
+telegram_loop = None
+telegram_client = None
+
+def start_telegram_loop():
+    global telegram_loop, telegram_client
+    telegram_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(telegram_loop)
+    
+    # Initialize and connect the Telegram Client ONCE
+    telegram_client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+    telegram_loop.run_until_complete(telegram_client.connect())
+    print("\n⚡ Persistent Telegram Client connected successfully! ⚡\n")
+    
+    telegram_loop.run_forever()
+
+if API_ID and API_HASH and SESSION_STRING:
+    t = threading.Thread(target=start_telegram_loop, daemon=True)
+    t.start()
+else:
+    print("WARNING: TELEGRAM_API_ID, TELEGRAM_API_HASH, or SESSION_STRING not set in .env")
 
 
 async def fetch_channel_messages(channel_username):
@@ -44,17 +63,13 @@ async def fetch_channel_messages(channel_username):
     Fetch all messages with photos from a Telegram channel.
     Returns batched results (100 per batch) with base64 images.
     """
-    client = get_client()
-    await client.connect()
-
-    if not await client.is_user_authorized():
-        await client.disconnect()
+    if not await telegram_client.is_user_authorized():
         return {'error': 'Session not authorized. Please regenerate SESSION_STRING.', 'code': 'AUTH_ERROR'}, 401
 
     try:
         # Resolve the channel entity
         try:
-            entity = await client.get_entity(channel_username)
+            entity = await telegram_client.get_entity(channel_username)
         except ValueError:
             return {'error': f'Channel "{channel_username}" not found.', 'code': 'CHANNEL_NOT_FOUND'}, 404
         except errors.ChannelPrivateError:
@@ -75,7 +90,7 @@ async def fetch_channel_messages(channel_username):
             'avatar_base64': None,
         }
         try:
-            full_channel = await client(GetFullChannelRequest(entity))
+            full_channel = await telegram_client(GetFullChannelRequest(entity))
             channel_info['about'] = full_channel.full_chat.about or ''
             channel_info['subscribers'] = full_channel.full_chat.participants_count or 0
         except Exception as e:
@@ -83,7 +98,7 @@ async def fetch_channel_messages(channel_username):
 
         # Download channel avatar
         try:
-            avatar_bytes = await client.download_profile_photo(entity, file=bytes)
+            avatar_bytes = await telegram_client.download_profile_photo(entity, file=bytes)
             if avatar_bytes:
                 channel_info['avatar_base64'] = base64.b64encode(avatar_bytes).decode('utf-8')
         except Exception as e:
@@ -92,7 +107,7 @@ async def fetch_channel_messages(channel_username):
         all_messages = []
 
         # Iterate through all messages in the channel
-        async for message in client.iter_messages(entity, limit=None):
+        async for message in telegram_client.iter_messages(entity, limit=None):
             # Only process messages that have both a photo and a caption
             if not message.photo or not message.text:
                 continue
@@ -128,8 +143,6 @@ async def fetch_channel_messages(channel_username):
     except Exception as e:
         print(f"Unexpected error: {e}")
         return {'error': str(e), 'code': 'INTERNAL_ERROR'}, 500
-    finally:
-        await client.disconnect()
 
 
 @app.route('/fetch-channel', methods=['POST'])
@@ -139,6 +152,9 @@ def fetch_channel():
     Body: { "channel": "@username" }
     Returns: { success, channel, total, messages: [{ message_id, caption, image_base64, date }] }
     """
+    if not telegram_loop or not telegram_client:
+        return jsonify({'error': 'Telegram client not initialized.', 'code': 'INIT_ERROR'}), 500
+
     data = request.get_json()
     if not data or not data.get('channel'):
         return jsonify({'error': 'Missing "channel" field.', 'code': 'MISSING_FIELD'}), 400
@@ -158,39 +174,32 @@ def fetch_channel():
     if not re.match(r'^[a-zA-Z][a-zA-Z0-9_]{3,31}$', username):
         return jsonify({'error': 'Invalid username format.', 'code': 'INVALID_USERNAME'}), 400
 
-    # Run the async fetch
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Run on persistent background loop
+    future = asyncio.run_coroutine_threadsafe(fetch_channel_messages(channel), telegram_loop)
     try:
-        result, status_code = loop.run_until_complete(fetch_channel_messages(channel))
+        result, status_code = future.result(timeout=300)
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({'error': str(e), 'code': 'INTERNAL_ERROR'}), 500
-    finally:
-        loop.close()
 
 
 async def fetch_message_photo(channel_username, message_id):
     """
     Download a single message's photo and return it base64-encoded.
     """
-    client = get_client()
-    await client.connect()
-
-    if not await client.is_user_authorized():
-        await client.disconnect()
+    if not await telegram_client.is_user_authorized():
         return {'error': 'Session not authorized. Please regenerate SESSION_STRING.', 'code': 'AUTH_ERROR'}, 401
 
     try:
         # Resolve entity
         try:
-            entity = await client.get_entity(channel_username)
+            entity = await telegram_client.get_entity(channel_username)
         except Exception as e:
             return {'error': f'Channel "{channel_username}" not found: {e}', 'code': 'CHANNEL_NOT_FOUND'}, 404
 
         # Fetch message
         try:
-            message = await client.get_messages(entity, ids=message_id)
+            message = await telegram_client.get_messages(entity, ids=message_id)
         except Exception as e:
             return {'error': f'Message {message_id} not found: {e}', 'code': 'MESSAGE_NOT_FOUND'}, 404
 
@@ -199,12 +208,12 @@ async def fetch_message_photo(channel_username, message_id):
 
         # Download photo
         try:
-            photo_bytes = await client.download_media(message.photo, file=bytes)
+            photo_bytes = await telegram_client.download_media(message.photo, file=bytes)
         except errors.FloodWaitError as e:
             wait_time = min(e.seconds, 60)
             print(f"Flood wait: sleeping {wait_time}s...")
             await asyncio.sleep(wait_time)
-            photo_bytes = await client.download_media(message.photo, file=bytes)
+            photo_bytes = await telegram_client.download_media(message.photo, file=bytes)
 
         if not photo_bytes:
             return {'error': 'Failed to download photo.', 'code': 'DOWNLOAD_FAILED'}, 500
@@ -227,8 +236,6 @@ async def fetch_message_photo(channel_username, message_id):
     except Exception as e:
         print(f"Unexpected error in fetch_message_photo: {e}")
         return {'error': str(e), 'code': 'INTERNAL_ERROR'}, 500
-    finally:
-        await client.disconnect()
 
 
 @app.route('/fetch-photo', methods=['POST'])
@@ -238,6 +245,9 @@ def fetch_photo():
     Body: { "channel": "@username", "message_id": 123 }
     Returns: { success, message_id, image_base64 }
     """
+    if not telegram_loop or not telegram_client:
+        return jsonify({'error': 'Telegram client not initialized.', 'code': 'INIT_ERROR'}), 500
+
     data = request.get_json()
     if not data or not data.get('channel') or not data.get('message_id'):
         return jsonify({'error': 'Missing "channel" or "message_id" field.', 'code': 'MISSING_FIELD'}), 400
@@ -245,15 +255,13 @@ def fetch_photo():
     channel = data['channel'].strip()
     message_id = int(data['message_id'])
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Run on persistent background loop
+    future = asyncio.run_coroutine_threadsafe(fetch_message_photo(channel, message_id), telegram_loop)
     try:
-        result, status_code = loop.run_until_complete(fetch_message_photo(channel, message_id))
+        result, status_code = future.result(timeout=60)
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({'error': str(e), 'code': 'INTERNAL_ERROR'}), 500
-    finally:
-        loop.close()
 
 
 @app.route('/health', methods=['GET'])
@@ -271,3 +279,5 @@ if __name__ == '__main__':
     print(f"API_ID: {API_ID}")
     print(f"Session: {'Set' if SESSION_STRING else 'Missing'}\n")
     app.run(host='0.0.0.0', port=PORT, debug=False)
+
+

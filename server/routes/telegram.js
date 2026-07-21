@@ -107,14 +107,9 @@ async function runSyncPipeline(store, channelUsername) {
       return;
     }
 
-    // 2. Process messages in batches
-    let processedCount = 0;
-
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-
+    // Helper to process a single message with parallel AI parsing & Cloudinary upload
+    const processSingleMessage = async (msg) => {
       try {
-        // Check if this message was already imported (deduplication)
         const existing = await Product.findOne({
           sourceMessageId: msg.message_id,
           sourceChannel: channelUsername,
@@ -122,13 +117,9 @@ async function runSyncPipeline(store, channelUsername) {
         });
 
         if (existing) {
-          processedCount++;
-          store.telegramSyncProgress = processedCount;
-          await store.save();
-          continue; // Skip duplicates
+          return true;
         }
 
-        // Call Python service to fetch photo ONLY for this specific message
         const photoResponse = await axios.post(`${TELEGRAM_SERVICE_URL}/fetch-photo`, {
           channel: channelUsername,
           message_id: msg.message_id,
@@ -138,33 +129,20 @@ async function runSyncPipeline(store, channelUsername) {
           throw new Error(`Failed to fetch photo from python service for message ${msg.message_id}`);
         }
 
-        // Parse caption with Claude
-        const parsed = await parseCaptionWithClaude(msg.caption);
+        // Run Gemini caption parsing and Cloudinary image upload in PARALLEL
+        const [parsed, uploaded] = await Promise.all([
+          parseCaptionWithClaude(msg.caption),
+          uploadBase64ToCloudinary(photoResponse.data.image_base64),
+        ]);
 
-        // Upload image to Cloudinary
-        let imageUrl = '';
-        let imagePublicId = '';
-        try {
-          const uploaded = await uploadBase64ToCloudinary(photoResponse.data.image_base64);
-          imageUrl = uploaded.url;
-          imagePublicId = uploaded.publicId;
-        } catch (uploadErr) {
-          console.error(`⚠️  Cloudinary upload failed for msg ${msg.message_id}:`, uploadErr.message);
-          processedCount++;
-          store.telegramSyncProgress = processedCount;
-          await store.save();
-          continue;
-        }
-
-        // Create product — auto-publish all, no review gate
         await Product.create({
           store: store._id,
           storeName: store.name,
           storeHandle: store.handle,
           title: parsed.name,
           description: parsed.description,
-          imageUrl,
-          imagePublicId,
+          imageUrl: uploaded.url,
+          imagePublicId: uploaded.publicId,
           price: parsed.price,
           currency: parsed.currency,
           category: parsed.category,
@@ -177,22 +155,45 @@ async function runSyncPipeline(store, channelUsername) {
           needsReview: parsed.needsReview,
         });
 
-        processedCount++;
-        store.telegramSyncProgress = processedCount;
-        await store.save();
-        console.log(`  ✅ Processed ${processedCount}/${messages.length}`);
-
-        // Small delay to avoid overwhelming Cloudinary + Claude APIs
-        if (i < messages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
+        return true;
       } catch (msgErr) {
         console.error(`⚠️  Error processing message ${msg.message_id}:`, msgErr.message);
-        processedCount++;
-        store.telegramSyncProgress = processedCount;
-        await store.save();
+        return false;
       }
+    };
+
+    // 2. Process messages with a concurrency worker pool (CONCURRENCY_LIMIT = 8)
+    let processedCount = 0;
+    const CONCURRENCY_LIMIT = 8;
+    let currentIndex = 0;
+
+    const runWorker = async () => {
+      while (currentIndex < messages.length) {
+        const msg = messages[currentIndex++];
+        if (!msg) break;
+
+        await processSingleMessage(msg);
+        processedCount++;
+
+        // Update progress in database every 2 products or at the end
+        if (processedCount % 2 === 0 || processedCount === messages.length) {
+          store.telegramSyncProgress = processedCount;
+          await store.save();
+        }
+      }
+    };
+
+    // Spawn concurrent workers
+    const workers = [];
+    const numWorkers = Math.min(CONCURRENCY_LIMIT, messages.length);
+    for (let w = 0; w < numWorkers; w++) {
+      workers.push(runWorker());
     }
+    await Promise.all(workers);
+
+    // Final progress write
+    store.telegramSyncProgress = processedCount;
+    await store.save();
 
     // 3. Finalize
     store.telegramSyncStatus = 'completed';
