@@ -266,10 +266,10 @@ export const apiSearchVisual = (file: File) => {
   }).then(r => r.json()) as Promise<{ success: boolean; products: ApiProduct[] }>;
 };
 
-export const apiSearchVisualUrl = (imageUrl: string) =>
+export const apiSearchVisualUrl = (imageUrl: string, productId?: string) =>
   request<{ success: boolean; products: ApiProduct[] }>('/search/visual-url', {
     method: 'POST',
-    body: JSON.stringify({ imageUrl }),
+    body: JSON.stringify({ imageUrl, productId }),
   });
 
 // ─── Notifications ───────────────────────────────────────────────────────────

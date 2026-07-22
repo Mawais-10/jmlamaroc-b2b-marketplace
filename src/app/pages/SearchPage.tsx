@@ -195,20 +195,25 @@ export default function SearchPage() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
 
+  // State flag to prevent loadProducts from overwriting visual search results
+  const [visualSearchActive, setVisualSearchActive] = useState(false);
+
   // Sync state with URL search params (essential for back/forward navigation and header link clicks)
   useEffect(() => {
+    if (visualSearchActive) return; // Don't sync URL params during visual search
     setQuery(searchParams.get('q') || '');
     setCategory(searchParams.get('category') || '');
-  }, [searchParams]);
+  }, [searchParams, visualSearchActive]);
 
   // Reset page to 1 when filters or query change
   useEffect(() => {
+    if (visualSearchActive) return;
     const p = new URLSearchParams(searchParams);
     if (p.get('page') && p.get('page') !== '1') {
       p.set('page', '1');
       setSearchParams(p);
     }
-  }, [query, category, selectedStore, sortBy, priceOnly, showDuplicates]);
+  }, [query, category, selectedStore, sortBy, priceOnly, showDuplicates, visualSearchActive]);
 
   // Restore session
   useEffect(() => {
@@ -261,7 +266,6 @@ export default function SearchPage() {
     }
   };
 
-
   useEffect(() => { fetchStores(); }, []);
 
   const fetchStores = async () => {
@@ -274,6 +278,8 @@ export default function SearchPage() {
   };
 
   const loadProducts = useCallback(async () => {
+    // When visual search is active, skip loading default products entirely
+    if (visualSearchActive) return;
     setLoading(true);
     try {
       const params: any = {
@@ -290,11 +296,18 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, category, selectedStore, sortBy, priceOnly, page]);
+  }, [query, category, selectedStore, sortBy, priceOnly, page, visualSearchActive]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
+  const handleClearImage = () => {
+    setUploadedImage(null);
+    setVisualSearchActive(false);
+    loadProducts();
+  };
+
   const handlePageChange = (newPage: number) => {
+    setVisualSearchActive(false);
     const p = new URLSearchParams(searchParams);
     p.set('page', String(newPage));
     setSearchParams(p);
@@ -302,6 +315,7 @@ export default function SearchPage() {
   };
 
   const handleSearch = () => {
+    setVisualSearchActive(false);
     const p = new URLSearchParams(searchParams);
     if (query) p.set('q', query); else p.delete('q');
     p.set('page', '1');
@@ -319,38 +333,57 @@ export default function SearchPage() {
     if (!file) return;
     setLoading(true);
     setUploadedImage(URL.createObjectURL(file));
+    setVisualSearchActive(true);
     toast.info(language === 'ar' ? 'يقوم الذكاء الاصطناعي بتحليل صورتك...' : language === 'fr' ? 'L\'IA analyse votre image...' : 'AI is analyzing your image...');
     try {
-      const res = await apiSearchVisual(file);
-      if (res.success) { 
-        setProducts(res.products); 
-        setTotal(res.products.length); 
-        toast.success(language === 'ar' ? 'اكتمل البحث البصري!' : language === 'fr' ? 'Recherche visuelle terminée !' : 'Visual search complete!'); 
+      const res = await apiSearchVisual(file) as any;
+      if (res.success) {
+        setProducts(res.products);
+        setTotal(res.products.length);
+        const catLabel = res.detectedCategory || '';
+        toast.success(
+          catLabel
+            ? (language === 'ar' ? `${res.products.length} منتج مشابه متاح (فئة: ${catLabel})` :
+               language === 'fr' ? `${res.products.length} produits similaires trouvés (${catLabel})` :
+               `Found ${res.products.length} matching products (${catLabel})`)
+            : (language === 'ar' ? `بحث بصري اكتمل! ${res.products.length} نتيجة` :
+               language === 'fr' ? `Recherche visuelle terminée ! ${res.products.length} résultats` :
+               `Visual search done! ${res.products.length} results found`)
+        );
+      } else {
+        toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
       }
-      else toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
-    } catch { 
-      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed'); 
+    } catch {
+      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  const handleVisualSearch = async (imgUrl: string) => {
+  const handleVisualSearch = async (imgUrl: string, productId?: string) => {
     setLoading(true);
     setUploadedImage(imgUrl);
+    setVisualSearchActive(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast.info(language === 'ar' ? 'البحث عن منتجات مماثلة...' : language === 'fr' ? 'Recherche de produits similaires...' : 'Finding similar products...');
     try {
-      const res = await apiSearchVisualUrl(imgUrl);
-      if (res.success) { 
-        setProducts(res.products); 
-        setTotal(res.products.length); 
-        toast.success(language === 'ar' ? 'اكتمل البحث البصري!' : language === 'fr' ? 'Recherche visuelle terminée !' : 'Visual search complete!'); 
+      const res = await apiSearchVisualUrl(imgUrl, productId) as any;
+      if (res.success) {
+        setProducts(res.products);
+        setTotal(res.products.length);
+        toast.success(
+          language === 'ar' ? `تم العثور على ${res.products.length} منتج مشابه` :
+          language === 'fr' ? `${res.products.length} produits similaires trouvés` :
+          `Found ${res.products.length} similar products`
+        );
+      } else {
+        toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
       }
-      else toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
-    } catch { 
-      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed'); 
+    } catch {
+      toast.error(language === 'ar' ? 'فشل البحث البصري' : language === 'fr' ? 'Échec de la recherche visuelle' : 'Visual search failed');
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
   const handleShare = async () => {
@@ -384,7 +417,7 @@ export default function SearchPage() {
               <div className="w-full h-full relative">
                 <img src={uploadedImage} className="w-full h-full rounded-lg object-cover" alt="Search" />
                 <button
-                  onClick={() => setUploadedImage(null)}
+                  onClick={handleClearImage}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center"
                 >
                   <X size={8} className="text-white" />
@@ -562,7 +595,7 @@ export default function SearchPage() {
                   product={product}
                   isFav={isFavorite(product._id)}
                   onFavorite={() => handleFavorite(product._id)}
-                  onVisualSearch={() => handleVisualSearch(product.imageUrl)}
+                  onVisualSearch={() => handleVisualSearch(product.imageUrl, product._id)}
                   onClick={() => setSelectedProductIndex(idx)}
                 />
               ))}
@@ -646,7 +679,7 @@ export default function SearchPage() {
           onSelectProduct={(index) => setSelectedProductIndex(index)}
           onVisualSearch={(prod) => {
             setSelectedProductIndex(null);
-            handleVisualSearch(prod.imageUrl);
+            handleVisualSearch(prod.imageUrl, prod._id);
           }}
         />
       )}
