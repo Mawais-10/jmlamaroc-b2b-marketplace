@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router';
 import { 
   Search, ImagePlus, Heart, X, ChevronDown, Loader2, 
   Home, Share2, Tag, Copy, LayoutGrid, Store as StoreIcon,
-  Send, MoreVertical, Image as ImageIcon
+  Send, MoreVertical, Image as ImageIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { 
   apiGetProducts, apiGetStores, apiCreateSearchSession, apiGetSearchSession,
@@ -185,6 +185,8 @@ export default function SearchPage() {
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(searchParams.get('img') || null);
 
+  const page = Number(searchParams.get('page')) || 1;
+
   const [stores, setStores] = useState<ApiStore[]>([]);
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [total, setTotal] = useState(0);
@@ -198,6 +200,15 @@ export default function SearchPage() {
     setQuery(searchParams.get('q') || '');
     setCategory(searchParams.get('category') || '');
   }, [searchParams]);
+
+  // Reset page to 1 when filters or query change
+  useEffect(() => {
+    const p = new URLSearchParams(searchParams);
+    if (p.get('page') && p.get('page') !== '1') {
+      p.set('page', '1');
+      setSearchParams(p);
+    }
+  }, [query, category, selectedStore, sortBy, priceOnly, showDuplicates]);
 
   // Restore session
   useEffect(() => {
@@ -268,6 +279,8 @@ export default function SearchPage() {
       const params: any = {
         sort: sortBy, q: query, category, storeId: selectedStore,
         priceOnly: priceOnly ? 'true' : 'false',
+        page: String(page),
+        limit: '40',
       };
       const res = await apiGetProducts(params);
       setProducts(res.products);
@@ -277,13 +290,21 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, category, selectedStore, sortBy, priceOnly]);
+  }, [query, category, selectedStore, sortBy, priceOnly, page]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
+
+  const handlePageChange = (newPage: number) => {
+    const p = new URLSearchParams(searchParams);
+    p.set('page', String(newPage));
+    setSearchParams(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSearch = () => {
     const p = new URLSearchParams(searchParams);
     if (query) p.set('q', query); else p.delete('q');
+    p.set('page', '1');
     setSearchParams(p);
   };
 
@@ -533,19 +554,87 @@ export default function SearchPage() {
             <p className="text-sm text-[#888]">{t.search.tryDifferent}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {products.map((product, idx) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-                isFav={isFavorite(product._id)}
-                onFavorite={() => handleFavorite(product._id)}
-                onVisualSearch={() => handleVisualSearch(product.imageUrl)}
-                onClick={() => setSelectedProductIndex(idx)}
-              />
-            ))}
-          </div>
-        )}
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {products.map((product, idx) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  isFav={isFavorite(product._id)}
+                  onFavorite={() => handleFavorite(product._id)}
+                  onVisualSearch={() => handleVisualSearch(product.imageUrl)}
+                  onClick={() => setSelectedProductIndex(idx)}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {(() => {
+              const limit = 40;
+              const totalPages = Math.ceil(total / limit);
+              if (totalPages <= 1) return null;
+
+              // Calculate sliding window of max 8 pages
+              let startPage = 1;
+              let endPage = totalPages;
+              if (totalPages > 8) {
+                if (page <= 5) {
+                  startPage = 1;
+                  endPage = 8;
+                } else if (page + 3 >= totalPages) {
+                  startPage = totalPages - 7;
+                  endPage = totalPages;
+                } else {
+                  startPage = page - 4;
+                  endPage = page + 3;
+                }
+              }
+
+              const pageNumbers = [];
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+              }
+
+              return (
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-8 py-6">
+                  {/* Prev Button */}
+                  <button
+                    disabled={page === 1}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="w-10 h-10 rounded-lg border border-[#E2E8F0] bg-white flex items-center justify-center text-gray-500 hover:border-[#E85D04] hover:text-[#E85D04] disabled:opacity-50 disabled:pointer-events-none hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {/* Page numbers */}
+                  {pageNumbers.map(n => (
+                    <button
+                      key={n}
+                      onClick={() => handlePageChange(n)}
+                      className={`w-10 h-10 rounded-lg text-sm font-bold shadow-sm hover:scale-105 active:scale-95 transition-all duration-200 ${
+                        page === n
+                          ? 'bg-[#E85D04] text-white shadow-md shadow-[#E85D04]/20'
+                          : 'bg-white border border-[#E2E8F0] text-[#555] hover:border-[#E85D04] hover:text-[#E85D04]'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+
+                  {/* Next Button */}
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="w-10 h-10 rounded-lg border border-[#E2E8F0] bg-white flex items-center justify-center text-gray-500 hover:border-[#E85D04] hover:text-[#E85D04] disabled:opacity-50 disabled:pointer-events-none hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              );
+            })()}
+          </>
+        )
+      }
       </div>
 
       {/* Product detail modal */}
