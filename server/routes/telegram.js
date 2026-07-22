@@ -41,12 +41,14 @@ async function uploadBase64ToCloudinary(base64Data) {
  * uploads images to Cloudinary, and upserts products in MongoDB.
  */
 async function runSyncPipeline(store, channelUsername) {
+  const storeId = store._id;
   try {
-    // Update status to syncing
-    store.telegramSyncStatus = 'syncing';
-    store.telegramSyncProgress = 0;
-    store.telegramSyncError = '';
-    await store.save();
+    // Update status to syncing (atomic)
+    await Store.findByIdAndUpdate(storeId, {
+      telegramSyncStatus: 'syncing',
+      telegramSyncProgress: 0,
+      telegramSyncError: '',
+    });
 
     // 1. Call Python service to fetch channel messages
     console.log(`📡 Fetching messages from ${channelUsername}...`);
@@ -62,13 +64,14 @@ async function runSyncPipeline(store, channelUsername) {
       const errCode = errData?.code || 'FETCH_ERROR';
       const errMsg = errData?.error || err.message;
 
-      store.telegramSyncStatus = 'failed';
-      store.telegramSyncError = errCode === 'CHANNEL_PRIVATE'
-        ? 'Channel is private. Make it public or add our bot as admin.'
-        : errCode === 'CHANNEL_NOT_FOUND'
-          ? 'Channel not found. Check the username and try again.'
-          : `Fetch failed: ${errMsg}`;
-      await store.save();
+      await Store.findByIdAndUpdate(storeId, {
+        telegramSyncStatus: 'failed',
+        telegramSyncError: errCode === 'CHANNEL_PRIVATE'
+          ? 'Channel is private. Make it public or add our bot as admin.'
+          : errCode === 'CHANNEL_NOT_FOUND'
+            ? 'Channel not found. Check the username and try again.'
+            : `Fetch failed: ${errMsg}`,
+      });
       return;
     }
 
@@ -76,12 +79,14 @@ async function runSyncPipeline(store, channelUsername) {
     const channelInfo = fetchResponse.data.channel_info || {};
     console.log(`Received ${messages.length} messages from ${channelUsername}`);
 
-    // Update store with real channel metadata
-    if (channelInfo.title) store.name = channelInfo.title;
-    if (channelInfo.about) store.description = channelInfo.about;
-    if (channelInfo.subscribers != null) store.followerCount = channelInfo.subscribers;
-    store.telegramHandle = channelUsername.replace(/^@/, '');
-    store.telegramLink = `https://t.me/${channelUsername.replace(/^@/, '')}`;
+    // Update store with real channel metadata (atomic)
+    const metaUpdate = {
+      telegramHandle: channelUsername.replace(/^@/, ''),
+      telegramLink: `https://t.me/${channelUsername.replace(/^@/, '')}`,
+    };
+    if (channelInfo.title) metaUpdate.name = channelInfo.title;
+    if (channelInfo.about) metaUpdate.description = channelInfo.about;
+    if (channelInfo.subscribers != null) metaUpdate.followerCount = channelInfo.subscribers;
 
     // Upload channel avatar to Cloudinary if available
     if (channelInfo.avatar_base64) {
@@ -90,20 +95,21 @@ async function runSyncPipeline(store, channelUsername) {
           `data:image/jpeg;base64,${channelInfo.avatar_base64}`,
           { folder: 'choufliya/avatars', transformation: [{ width: 200, height: 200, crop: 'fill' }] }
         );
-        store.avatar = avatarResult.secure_url;
-        store.avatarPublicId = avatarResult.public_id;
+        metaUpdate.avatar = avatarResult.secure_url;
+        metaUpdate.avatarPublicId = avatarResult.public_id;
         console.log('Channel avatar uploaded to Cloudinary');
       } catch (avatarErr) {
         console.error('Failed to upload channel avatar:', avatarErr.message);
       }
     }
-    await store.save();
+    await Store.findByIdAndUpdate(storeId, metaUpdate);
 
     if (messages.length === 0) {
-      store.telegramSyncStatus = 'completed';
-      store.telegramSyncProgress = 0;
-      store.lastTelegramSync = new Date();
-      await store.save();
+      await Store.findByIdAndUpdate(storeId, {
+        telegramSyncStatus: 'completed',
+        telegramSyncProgress: 0,
+        lastTelegramSync: new Date(),
+      });
       return;
     }
 
@@ -113,7 +119,7 @@ async function runSyncPipeline(store, channelUsername) {
         const existing = await Product.findOne({
           sourceMessageId: msg.message_id,
           sourceChannel: channelUsername,
-          store: store._id,
+          store: storeId,
         });
 
         if (existing) {
@@ -135,10 +141,13 @@ async function runSyncPipeline(store, channelUsername) {
           uploadBase64ToCloudinary(photoResponse.data.image_base64),
         ]);
 
+        // Fetch the current store name/handle atomically (don't trust stale store object)
+        const freshStore = await Store.findById(storeId).select('name handle').lean();
+
         await Product.create({
-          store: store._id,
-          storeName: store.name,
-          storeHandle: store.handle,
+          store: storeId,
+          storeName: freshStore?.name || '',
+          storeHandle: freshStore?.handle || '',
           title: parsed.name,
           description: parsed.description,
           imageUrl: uploaded.url,
@@ -166,6 +175,8 @@ async function runSyncPipeline(store, channelUsername) {
     let processedCount = 0;
     const CONCURRENCY_LIMIT = 8;
     let currentIndex = 0;
+    // Mutex counter for atomic progress updates
+    const progressLock = { value: 0 };
 
     const runWorker = async () => {
       while (currentIndex < messages.length) {
@@ -173,12 +184,13 @@ async function runSyncPipeline(store, channelUsername) {
         if (!msg) break;
 
         await processSingleMessage(msg);
-        processedCount++;
+        // Atomic increment using a local counter, then flush to DB periodically
+        progressLock.value++;
+        const localCount = progressLock.value;
 
-        // Update progress in database every 2 products or at the end
-        if (processedCount % 2 === 0 || processedCount === messages.length) {
-          store.telegramSyncProgress = processedCount;
-          await store.save();
+        // Update progress in database every 5 products or at the end (atomic)
+        if (localCount % 5 === 0 || localCount === messages.length) {
+          await Store.findByIdAndUpdate(storeId, { telegramSyncProgress: localCount });
         }
       }
     };
@@ -191,25 +203,24 @@ async function runSyncPipeline(store, channelUsername) {
     }
     await Promise.all(workers);
 
-    // Final progress write
-    store.telegramSyncProgress = processedCount;
-    await store.save();
+    processedCount = progressLock.value;
 
-    // 3. Finalize
-    store.telegramSyncStatus = 'completed';
-    store.telegramSyncProgress = processedCount;
-    store.lastTelegramSync = new Date();
-
-    // Update product count
-    store.productCount = await Product.countDocuments({ store: store._id, isActive: true });
-    await store.save();
+    // 3. Finalize (atomic)
+    const finalProductCount = await Product.countDocuments({ store: storeId, isActive: true });
+    await Store.findByIdAndUpdate(storeId, {
+      telegramSyncStatus: 'completed',
+      telegramSyncProgress: processedCount,
+      lastTelegramSync: new Date(),
+      productCount: finalProductCount,
+    });
 
     console.log(`🎉 Sync complete for ${channelUsername}: ${processedCount} products processed`);
   } catch (err) {
     console.error('❌ Sync pipeline error:', err);
-    store.telegramSyncStatus = 'failed';
-    store.telegramSyncError = err.message || 'Unexpected error during sync.';
-    await store.save();
+    await Store.findByIdAndUpdate(storeId, {
+      telegramSyncStatus: 'failed',
+      telegramSyncError: err.message || 'Unexpected error during sync.',
+    });
   }
 }
 
