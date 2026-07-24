@@ -1,11 +1,21 @@
-"""
-Telegram Channel Fetcher + CLIP Embedding Microservice
-Flask + Telethon — fetches posts (with photos) from public Telegram channels.
-Also provides /embed-image and /embed-text endpoints using OpenAI CLIP model
-for 512-dimensional vector embeddings used by MongoDB Atlas Vector Search.
-"""
-
 import os
+import sys
+
+# Force UTF-8 and disable tqdm / HuggingFace progress bars to prevent Windows charmap encoding errors
+os.environ["PYTHONIOENCODING"] = "utf-8"
+os.environ["TQDM_DISABLE"] = "1"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
+import transformers
+transformers.logging.set_verbosity_error()
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 import io
 import base64
 import asyncio
@@ -52,7 +62,7 @@ def start_telegram_loop():
     # Initialize and connect the Telegram Client ONCE
     telegram_client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
     telegram_loop.run_until_complete(telegram_client.connect())
-    print("\n⚡ Persistent Telegram Client connected successfully! ⚡\n")
+    print("\n[TELEGRAM] Persistent Telegram Client connected successfully!\n")
     
     telegram_loop.run_forever()
 
@@ -291,14 +301,27 @@ def get_clip_model():
     """Lazy-load CLIP model once, reuse across all requests."""
     global _clip_model, _clip_processor
     if _clip_model is None:
-        print("🔄 Loading CLIP model (openai/clip-vit-base-patch32)...")
+        print("[CLIP] Loading model (openai/clip-vit-base-patch32)...")
         import torch
         from transformers import CLIPModel, CLIPProcessor
         _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         _clip_model.eval()
-        print("✅ CLIP model loaded.")
+        print("[CLIP] Model loaded successfully.")
     return _clip_model, _clip_processor
+
+
+def extract_tensor(out):
+    """Safely extract 2D embedding tensor [batch, dim] across different transformers library versions."""
+    if hasattr(out, 'pooler_output') and out.pooler_output is not None:
+        return out.pooler_output
+    if hasattr(out, 'text_embeds') and out.text_embeds is not None:
+        return out.text_embeds
+    if hasattr(out, 'image_embeds') and out.image_embeds is not None:
+        return out.image_embeds
+    if isinstance(out, (list, tuple)):
+        return out[0]
+    return out
 
 
 @app.route('/embed-image', methods=['POST'])
@@ -338,7 +361,12 @@ def embed_image():
 
         inputs = processor(images=image, return_tensors="pt")
         with torch.no_grad():
-            image_features = model.get_image_features(**inputs)
+            out = model.get_image_features(**inputs)
+            image_features = extract_tensor(out)
+
+        # Ensure 2D tensor [1, 512]
+        if image_features.ndim == 1:
+            image_features = image_features.unsqueeze(0)
 
         # L2-normalize so cosine similarity == dot product in Atlas
         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
@@ -347,8 +375,9 @@ def embed_image():
         return jsonify({'success': True, 'embedding': embedding})
 
     except Exception as e:
-        print(f"embed_image error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        err_msg = str(e).encode('ascii', 'ignore').decode('ascii')
+        print(f"embed_image error: {err_msg}")
+        return jsonify({'success': False, 'error': err_msg}), 500
 
 
 @app.route('/embed-text', methods=['POST'])
@@ -374,7 +403,12 @@ def embed_text():
 
         inputs = processor(text=[text], return_tensors="pt", padding=True, truncation=True)
         with torch.no_grad():
-            text_features = model.get_text_features(**inputs)
+            out = model.get_text_features(**inputs)
+            text_features = extract_tensor(out)
+
+        # Ensure 2D tensor [1, 512]
+        if text_features.ndim == 1:
+            text_features = text_features.unsqueeze(0)
 
         # L2-normalize
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
@@ -383,8 +417,9 @@ def embed_text():
         return jsonify({'success': True, 'embedding': embedding})
 
     except Exception as e:
-        print(f"embed_text error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        err_msg = str(e).encode('ascii', 'ignore').decode('ascii')
+        print(f"embed_text error: {err_msg}")
+        return jsonify({'success': False, 'error': err_msg}), 500
 
 
 if __name__ == '__main__':

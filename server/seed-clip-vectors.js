@@ -1,14 +1,13 @@
 /**
  * seed-clip-vectors.js
  * 
- * Backfill script — generates 512-dim CLIP embeddings for all products
- * that don't yet have a clip_embedding. Runs batches of 5 in parallel.
+ * Memory-efficient backfill script — generates 512-dim CLIP embeddings for all products
+ * that don't yet have a clip_embedding. Fetches 50 at a time in a pagination loop to prevent
+ * Node.js out-of-memory crashes.
  * 
  * Usage:
  *   cd server
  *   node seed-clip-vectors.js
- * 
- * Make sure the Flask telegram-service is running on port 5002 first!
  */
 
 require('dotenv').config();
@@ -17,8 +16,9 @@ const axios = require('axios');
 const Product = require('./models/Product');
 const connectDB = require('./config/db');
 
-const FLASK_SERVICE_URL = process.env.TELEGRAM_SERVICE_URL || 'http://localhost:5002';
-const BATCH_SIZE = 5;
+const FLASK_SERVICE_URL = process.env.TELEGRAM_SERVICE_URL || 'http://127.0.0.1:5002';
+const CONCURRENCY = 5;
+const BATCH_SIZE = 50;
 
 async function getClipEmbedding(imageUrl) {
   const resp = await axios.post(
@@ -45,45 +45,61 @@ async function seedClipVectors() {
     process.exit(1);
   }
 
-  // Find all products missing clip_embedding
-  const products = await Product.find({
+  const initialRemaining = await Product.countDocuments({
     $or: [
       { clip_embedding: { $exists: false } },
       { clip_embedding: { $size: 0 } },
     ],
-  }).select('_id imageUrl title').lean();
+  });
 
-  const total = products.length;
-  console.log(`\n📦 Found ${total} products without CLIP embeddings.\n`);
+  console.log(`\n📦 Found ${initialRemaining} products needing CLIP embeddings.\n`);
 
-  if (total === 0) {
+  if (initialRemaining === 0) {
     console.log('✅ All products already have CLIP embeddings!');
     process.exit(0);
   }
 
+  let totalProcessed = 0;
   let successCount = 0;
   let failCount = 0;
 
-  for (let i = 0; i < products.length; i += BATCH_SIZE) {
-    const batch = products.slice(i, i + BATCH_SIZE);
+  // Pagination loop — fetch BATCH_SIZE items per iteration (low memory profile)
+  while (true) {
+    const products = await Product.find({
+      $or: [
+        { clip_embedding: { $exists: false } },
+        { clip_embedding: { $size: 0 } },
+      ],
+    }).select('_id imageUrl title').limit(BATCH_SIZE).lean();
 
-    await Promise.all(batch.map(async (product, batchIdx) => {
-      const idx = i + batchIdx + 1;
-      const label = `[${idx}/${total}]`;
+    if (products.length === 0) break;
 
-      try {
-        const embedding = await getClipEmbedding(product.imageUrl);
-        await Product.findByIdAndUpdate(product._id, { clip_embedding: embedding });
-        console.log(`${label} ✅  "${(product.title || product._id).toString().substring(0, 45)}"`);
-        successCount++;
-      } catch (err) {
-        console.warn(`${label} ❌  ${product._id} — ${err.message}`);
-        failCount++;
-      }
-    }));
+    for (let i = 0; i < products.length; i += CONCURRENCY) {
+      const chunk = products.slice(i, i + CONCURRENCY);
+
+      await Promise.all(chunk.map(async (product) => {
+        totalProcessed++;
+        const label = `[#${totalProcessed}]`;
+
+        try {
+          const embedding = await getClipEmbedding(product.imageUrl);
+          await Product.findByIdAndUpdate(product._id, { clip_embedding: embedding });
+          console.log(`${label} ✅  "${(product.title || product._id).toString().substring(0, 40)}"`);
+          successCount++;
+        } catch (err) {
+          console.warn(`${label} ❌  ${product._id} — ${err.message}`);
+          failCount++;
+          // Set a dummy empty array marker so it doesn't get stuck infinitely on un-embeddable broken URLs
+          await Product.findByIdAndUpdate(product._id, { clip_embedding: [0] }).catch(() => {});
+        }
+      }));
+    }
+
+    // Explicit garbage collection hint if available
+    if (global.gc) global.gc();
   }
 
-  console.log(`\n🎉 Done! Success: ${successCount}  Failed: ${failCount}  Total: ${total}`);
+  console.log(`\n🎉 Done! Processed: ${totalProcessed} | Success: ${successCount} | Failed: ${failCount}`);
   process.exit(0);
 }
 
