@@ -17,7 +17,7 @@ const Product = require('./models/Product');
 const connectDB = require('./config/db');
 
 const FLASK_SERVICE_URL = process.env.TELEGRAM_SERVICE_URL || 'http://127.0.0.1:5002';
-const CONCURRENCY = 5;
+const CONCURRENCY = 2;
 const BATCH_SIZE = 50;
 
 async function getClipEmbedding(imageUrl) {

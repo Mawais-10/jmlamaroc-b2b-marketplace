@@ -333,10 +333,11 @@ def embed_image():
     Returns: { "success": true, "embedding": [0.12, -0.34, ...] }  (512-dim CLIP vector)
 
     Accepts either a Cloudinary CDN URL or a base64 data URI.
-    Downloads/decodes the image, generates a normalized 512-dimensional CLIP
-    image embedding and returns it as a list.
+    Downloads/decodes the image, resizes to max 512x512 for low RAM usage,
+    generates a normalized 512-dimensional CLIP image embedding and returns it.
     """
     import torch
+    import gc
     import base64 as b64_module
 
     data = request.get_json()
@@ -357,6 +358,9 @@ def embed_image():
             resp.raise_for_status()
             image = PILImage.open(io.BytesIO(resp.content)).convert("RGB")
 
+        # Downscale to max 512x512 to conserve memory (CLIP patch32 only uses 224x224)
+        image.thumbnail((512, 512))
+
         model, processor = get_clip_model()
 
         inputs = processor(images=image, return_tensors="pt")
@@ -371,6 +375,10 @@ def embed_image():
         # L2-normalize so cosine similarity == dot product in Atlas
         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
         embedding = image_features.cpu().numpy()[0].tolist()
+
+        # Free memory immediately
+        del image, inputs, out, image_features
+        gc.collect()
 
         return jsonify({'success': True, 'embedding': embedding})
 
