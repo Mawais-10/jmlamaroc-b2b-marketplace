@@ -1,7 +1,8 @@
 """
-Telegram Channel Fetcher Microservice
+Telegram Channel Fetcher + CLIP Embedding Microservice
 Flask + Telethon — fetches posts (with photos) from public Telegram channels.
-Returns messages in batches of 100 with base64-encoded images.
+Also provides /embed-image and /embed-text endpoints using OpenAI CLIP model
+for 512-dimensional vector embeddings used by MongoDB Atlas Vector Search.
 """
 
 import os
@@ -10,6 +11,10 @@ import base64
 import asyncio
 import json
 from datetime import datetime
+
+# CLIP lazy imports (loaded on first request to keep startup fast)
+import requests as http_requests
+from PIL import Image as PILImage
 
 from dotenv import load_dotenv
 from flask_cors import CORS
@@ -272,6 +277,114 @@ def health():
         'status': 'running',
         'timestamp': datetime.utcnow().isoformat(),
     })
+
+
+# ─── CLIP Embedding Endpoints ─────────────────────────────────────────────────
+# These endpoints are appended to the existing Flask app without changing any
+# existing Telegram routes above.
+
+# Lazy CLIP singleton — model loads on first request, not at startup
+_clip_model = None
+_clip_processor = None
+
+def get_clip_model():
+    """Lazy-load CLIP model once, reuse across all requests."""
+    global _clip_model, _clip_processor
+    if _clip_model is None:
+        print("🔄 Loading CLIP model (openai/clip-vit-base-patch32)...")
+        import torch
+        from transformers import CLIPModel, CLIPProcessor
+        _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        _clip_model.eval()
+        print("✅ CLIP model loaded.")
+    return _clip_model, _clip_processor
+
+
+@app.route('/embed-image', methods=['POST'])
+def embed_image():
+    """
+    POST /embed-image
+    Body: { "imageUrl": "https://res.cloudinary.com/..." }
+       OR { "imageUrl": "data:image/jpeg;base64,/9j/..." }
+    Returns: { "success": true, "embedding": [0.12, -0.34, ...] }  (512-dim CLIP vector)
+
+    Accepts either a Cloudinary CDN URL or a base64 data URI.
+    Downloads/decodes the image, generates a normalized 512-dimensional CLIP
+    image embedding and returns it as a list.
+    """
+    import torch
+    import base64 as b64_module
+
+    data = request.get_json()
+    if not data or not data.get('imageUrl'):
+        return jsonify({'success': False, 'error': 'Missing "imageUrl" field.'}), 400
+
+    image_url = data['imageUrl']
+
+    try:
+        # Handle base64 data URI (e.g. "data:image/jpeg;base64,/9j/...")
+        if image_url.startswith('data:'):
+            header, encoded = image_url.split(',', 1)
+            img_bytes = b64_module.b64decode(encoded)
+            image = PILImage.open(io.BytesIO(img_bytes)).convert("RGB")
+        else:
+            # Regular HTTP/HTTPS URL (Cloudinary CDN)
+            resp = http_requests.get(image_url, timeout=15)
+            resp.raise_for_status()
+            image = PILImage.open(io.BytesIO(resp.content)).convert("RGB")
+
+        model, processor = get_clip_model()
+
+        inputs = processor(images=image, return_tensors="pt")
+        with torch.no_grad():
+            image_features = model.get_image_features(**inputs)
+
+        # L2-normalize so cosine similarity == dot product in Atlas
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        embedding = image_features.cpu().numpy()[0].tolist()
+
+        return jsonify({'success': True, 'embedding': embedding})
+
+    except Exception as e:
+        print(f"embed_image error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/embed-text', methods=['POST'])
+def embed_text():
+    """
+    POST /embed-text
+    Body: { "text": "red summer dress" }
+    Returns: { "success": true, "embedding": [0.12, -0.34, ...] }  (512-dim CLIP vector)
+
+    Generates a normalized 512-dimensional CLIP text embedding from the query
+    string. Used by /api/search/text in the Node backend for text-to-image search.
+    """
+    import torch
+
+    data = request.get_json()
+    if not data or not data.get('text'):
+        return jsonify({'success': False, 'error': 'Missing "text" field.'}), 400
+
+    text = data['text'].strip()
+
+    try:
+        model, processor = get_clip_model()
+
+        inputs = processor(text=[text], return_tensors="pt", padding=True, truncation=True)
+        with torch.no_grad():
+            text_features = model.get_text_features(**inputs)
+
+        # L2-normalize
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        embedding = text_features.cpu().numpy()[0].tolist()
+
+        return jsonify({'success': True, 'embedding': embedding})
+
+    except Exception as e:
+        print(f"embed_text error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':

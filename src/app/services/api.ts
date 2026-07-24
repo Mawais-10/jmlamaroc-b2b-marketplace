@@ -272,6 +272,12 @@ export const apiSearchVisualUrl = (imageUrl: string, productId?: string) =>
     body: JSON.stringify({ imageUrl, productId }),
   });
 
+export const apiSearchByText = (text: string) =>
+  request<{ success: boolean; products: ApiProduct[]; query: string }>('/search/text', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+
 // ─── Notifications ───────────────────────────────────────────────────────────
 
 export const apiGetNotifications = () =>

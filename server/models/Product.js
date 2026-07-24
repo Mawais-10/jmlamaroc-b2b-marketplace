@@ -16,7 +16,8 @@ const productSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   views: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
-  vector: { type: [Number], default: [] },
+  vector: { type: [Number], default: [] },          // Legacy MobileNet 1024-dim (kept, unused)
+  clip_embedding: { type: [Number], default: [] },   // CLIP 512-dim (active for visual search)
   // Telegram import fields
   source: { type: String, enum: ['manual', 'telegram'], default: 'manual' },
   sourceChannel: { type: String, default: '' },

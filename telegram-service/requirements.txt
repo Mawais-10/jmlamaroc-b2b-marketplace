@@ -3,3 +3,7 @@ flask-cors==6.0.5
 telethon==1.37.0
 python-dotenv==1.1.0
 gunicorn==23.0.0
+torch
+transformers
+Pillow
+requests

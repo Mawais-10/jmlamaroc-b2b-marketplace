@@ -5,10 +5,12 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 const Product = require('../models/Product');
-const { analyzeVisualBuffer, generateEmbedding } = require('../utils/vision');
 const axios = require('axios');
 
-// Save a search session
+const FLASK_SERVICE_URL = process.env.TELEGRAM_SERVICE_URL || 'http://localhost:5002';
+
+// ─── Search Sessions ──────────────────────────────────────────────────────────
+
 router.post('/sessions', async (req, res) => {
   try {
     const { filters } = req.body;
@@ -22,7 +24,6 @@ router.post('/sessions', async (req, res) => {
   }
 });
 
-// Get a search session
 router.get('/sessions/:id', async (req, res) => {
   try {
     const session = await SearchSession.findOne({ sessionId: req.params.id });
@@ -34,151 +35,212 @@ router.get('/sessions/:id', async (req, res) => {
   }
 });
 
+// ─── CLIP Helper Functions ────────────────────────────────────────────────────
+
 /**
- * High-precision visual product matching
+ * Call Flask /embed-image to get a 512-dim CLIP vector from a Cloudinary URL.
+ * Returns null if Flask is unavailable or the call fails.
  */
-async function findVisuallyMatchingProducts(analysis) {
-  const { queryVector, detectedCategory, keywords, labelText } = analysis;
-  let products = [];
-  const existingIds = new Set();
+async function getClipImageEmbedding(imageUrl) {
+  try {
+    const resp = await axios.post(
+      `${FLASK_SERVICE_URL}/embed-image`,
+      { imageUrl },
+      { timeout: 30000 }
+    );
+    if (resp.data?.success && Array.isArray(resp.data.embedding)) {
+      return resp.data.embedding;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Flask /embed-image error:', err.message);
+    return null;
+  }
+}
 
-  console.log('--- Visual Matching Analysis ---', {
-    detectedCategory,
-    keywords,
-    labelText
-  });
+/**
+ * Call Flask /embed-image with a raw image buffer (multipart upload).
+ * Uploads the buffer as a temp Cloudinary URL via base64 to Flask.
+ * Since Flask /embed-image expects a URL, we send the buffer as base64 data URI.
+ */
+async function getClipImageEmbeddingFromBuffer(buffer) {
+  try {
+    const base64 = buffer.toString('base64');
+    // Use a data URI — Flask PIL can open it
+    const dataUri = `data:image/jpeg;base64,${base64}`;
+    const resp = await axios.post(
+      `${FLASK_SERVICE_URL}/embed-image`,
+      { imageUrl: dataUri },
+      { timeout: 30000 }
+    );
+    if (resp.data?.success && Array.isArray(resp.data.embedding)) {
+      return resp.data.embedding;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Flask /embed-image (buffer) error:', err.message);
+    return null;
+  }
+}
 
-  // ── Layer 1: Precision Keyword Text Search (Finds exact titles in DB) ──────
-  if (keywords && keywords.length > 0) {
-    const pattern = new RegExp(keywords.join('|'), 'i');
-    
-    const keywordProducts = await Product.find({
+/**
+ * Call Flask /embed-text to get a 512-dim CLIP vector from a text query.
+ * Returns null if Flask is unavailable or the call fails.
+ */
+async function getClipTextEmbedding(text) {
+  try {
+    const resp = await axios.post(
+      `${FLASK_SERVICE_URL}/embed-text`,
+      { text },
+      { timeout: 30000 }
+    );
+    if (resp.data?.success && Array.isArray(resp.data.embedding)) {
+      return resp.data.embedding;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Flask /embed-text error:', err.message);
+    return null;
+  }
+}
+
+// ─── Core Visual Search Logic ─────────────────────────────────────────────────
+
+/**
+ * Run MongoDB Atlas Vector Search using a 512-dim CLIP query vector.
+ * Falls back to keyword-based search if queryVector is null.
+ */
+async function findProductsByVector(queryVector, { keywords = [], category = '', limit = 40, excludeId = null } = {}) {
+  const results = [];
+  const seenIds = new Set();
+
+  // ── Layer 1: Text keyword search (fast, uses MongoDB text index) ─────────
+  if (keywords.length > 0) {
+    const pattern = new RegExp(
+      keywords
+        .filter(w => w.length > 2)
+        .slice(0, 6)
+        .join('|'),
+      'i'
+    );
+
+    const kwProducts = await Product.find({
       $or: [
         { title: { $regex: pattern } },
         { description: { $regex: pattern } },
-        { tags: { $regex: pattern } }
-      ]
+        { tags: { $regex: pattern } },
+      ],
     })
       .sort({ createdAt: -1 })
-      .limit(40)
+      .limit(limit)
       .lean();
 
-    console.log(`Layer 1: Text keyword search (${keywords.join(', ')}) → ${keywordProducts.length} matching products`);
-    
-    keywordProducts.forEach(p => {
-      products.push(p);
-      existingIds.add(p._id.toString());
-    });
+    console.log(`Layer 1 keyword search (${keywords.join(', ')}) → ${kwProducts.length} results`);
 
-    if (products.length >= 5) {
-      console.log(`Returning ${products.length} high-confidence keyword text matches!`);
-      return products.slice(0, 40);
+    for (const p of kwProducts) {
+      const id = p._id.toString();
+      if (!seenIds.has(id) && id !== excludeId) {
+        results.push(p);
+        seenIds.add(id);
+      }
+    }
+
+    if (results.length >= 5) {
+      console.log(`Returning ${results.length} keyword results.`);
+      return results.slice(0, limit);
     }
   }
 
-  // ── Layer 2: Atlas Vector Search with High Score Thresholding (0.88+) ──────
-  if (queryVector && queryVector.length > 0) {
+  // ── Layer 2: CLIP Atlas $vectorSearch on clip_embedding (cosine, 512-dim) ─
+  if (queryVector && queryVector.length === 512) {
     try {
       const vectorResults = await Product.aggregate([
         {
           $vectorSearch: {
-            index: "vector_index",
-            path: "vector",
-            queryVector: queryVector,
-            numCandidates: 100,
-            limit: 20
-          }
+            index: 'clip_vector_index',
+            path: 'clip_embedding',
+            queryVector,
+            numCandidates: 150,
+            limit: 50,
+          },
         },
         {
           $project: {
+            clip_embedding: 0,
             vector: 0,
-            score: { $meta: "vectorSearchScore" }
-          }
-        }
+            score: { $meta: 'vectorSearchScore' },
+          },
+        },
       ]);
 
-      if (vectorResults && vectorResults.length > 0) {
-        // Require score >= 0.88 for true high-confidence vector matches
-        const highQualityVectorMatches = vectorResults.filter(p => p.score >= 0.88);
-        console.log(`Layer 2: Vector search raw: ${vectorResults.length}, High quality (score>=0.88): ${highQualityVectorMatches.length}`);
+      // Filter by score threshold (cosine ≥ 0.20 is meaningful for CLIP)
+      const goodMatches = vectorResults.filter(p => p.score >= 0.20);
+      console.log(`Layer 2 CLIP vectorSearch → raw: ${vectorResults.length}, good (≥0.20): ${goodMatches.length}`);
 
-        highQualityVectorMatches.forEach(p => {
-          if (!existingIds.has(p._id.toString())) {
-            products.push(p);
-            existingIds.add(p._id.toString());
-          }
-        });
+      for (const p of goodMatches) {
+        const id = p._id.toString();
+        if (!seenIds.has(id) && id !== excludeId) {
+          results.push(p);
+          seenIds.add(id);
+        }
       }
     } catch (err) {
-      console.log('Layer 2: Vector search notice:', err.message);
+      console.warn('Atlas vectorSearch error (clip_vector_index):', err.message);
     }
   }
 
-  if (products.length > 0) {
-    return products.slice(0, 40);
-  }
-
-  // ── Layer 3: Label words fallback (if specific keywords didn't find items) ─
-  const labelWords = (labelText || '')
-    .split(/[\s,]+/)
-    .map(w => w.trim().toLowerCase())
-    .filter(w => w.length > 3 && !['with', 'that', 'from', 'this', 'have', 'been', 'like', 'some', 'also', 'site', 'website', 'comic', 'book', 'hand', 'held', 'computer'].includes(w));
-
-  if (labelWords.length > 0) {
-    const pattern = new RegExp(labelWords.join('|'), 'i');
-    const labelProducts = await Product.find({
-      $or: [
-        { title: { $regex: pattern } },
-        { description: { $regex: pattern } }
-      ]
-    })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean();
-
-    console.log(`Layer 3: Label words search (${labelWords.join(', ')}) → ${labelProducts.length} products`);
-    labelProducts.forEach(p => {
-      if (!existingIds.has(p._id.toString())) {
-        products.push(p);
-        existingIds.add(p._id.toString());
-      }
-    });
-  }
-
-  console.log(`Final visual search results count: ${products.length}`);
-  return products.slice(0, 40);
+  console.log(`Final visual search result count: ${results.length}`);
+  return results.slice(0, limit);
 }
 
-// POST /api/search/visual - Search by uploaded image file
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/search/visual
+ * Accepts a multipart image file upload.
+ * Calls Flask /embed-image to get a 512-dim CLIP vector, then runs Atlas vectorSearch.
+ */
 router.post('/visual', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'Image is required' });
 
-    console.log('--- Visual Search: Processing Uploaded Image ---');
-    const analysis = await analyzeVisualBuffer(req.file.buffer);
-    const products = await findVisuallyMatchingProducts(analysis);
+    console.log('--- Visual Search: Processing Uploaded Image Buffer ---');
 
-    res.json({
-      success: true,
-      products,
-      detectedCategory: analysis.detectedCategory,
-      predictions: analysis.predictions
-    });
+    // Get CLIP embedding from uploaded file buffer
+    const queryVector = await getClipImageEmbeddingFromBuffer(req.file.buffer);
+    if (!queryVector) {
+      return res.status(503).json({ success: false, message: 'CLIP embedding service unavailable. Make sure Flask service is running.' });
+    }
+
+    const products = await findProductsByVector(queryVector);
+
+    res.json({ success: true, products, detectedCategory: '' });
   } catch (err) {
     console.error('Visual search error:', err);
     res.status(500).json({ success: false, message: 'Visual search failed: ' + err.message });
   }
 });
 
-// POST /api/search/visual-url - Instant fast-path search by image URL / productId
+/**
+ * POST /api/search/visual-url
+ * Accepts { imageUrl, productId }.
+ * Fast-path: if productId given, use stored clip_embedding from MongoDB (instant).
+ * Fallback: call Flask /embed-image with the imageUrl.
+ */
 router.post('/visual-url', async (req, res) => {
   try {
     const { imageUrl, productId } = req.body;
-    if (!imageUrl && !productId) return res.status(400).json({ success: false, message: 'imageUrl or productId is required' });
+    if (!imageUrl && !productId) {
+      return res.status(400).json({ success: false, message: 'imageUrl or productId is required' });
+    }
 
-    console.log('--- Visual Search: Processing Image URL / Product ---', { imageUrl, productId });
+    console.log('--- Visual Search: Image URL / ProductId ---', { imageUrl: !!imageUrl, productId });
 
-    // 1. FAST PATH: Instant lookup for products already in MongoDB!
+    let queryVector = null;
+    let excludeId = null;
+    let keywords = [];
+
+    // ── Fast-path: product already in MongoDB with stored clip_embedding ─────
     let dbProduct = null;
     if (productId) {
       dbProduct = await Product.findById(productId).lean();
@@ -188,52 +250,80 @@ router.post('/visual-url', async (req, res) => {
     }
 
     if (dbProduct) {
-      console.log(`⚡ Fast-path matched DB product in 2ms: "${dbProduct.title?.substring(0, 40) || dbProduct._id}"`);
-      
-      let queryVector = dbProduct.vector;
-      if (!queryVector || queryVector.length === 0) {
-        queryVector = await generateEmbedding(dbProduct.imageUrl);
+      excludeId = dbProduct._id.toString();
+      console.log(`⚡ Fast-path: found DB product "${dbProduct.title?.substring(0, 40) || excludeId}"`);
+
+      if (dbProduct.clip_embedding && dbProduct.clip_embedding.length === 512) {
+        // Use stored CLIP vector — no Flask call needed!
+        queryVector = dbProduct.clip_embedding;
+        console.log('⚡ Using stored clip_embedding (no Flask call needed)');
+      } else {
+        // Product exists but has no CLIP embedding yet → call Flask
+        console.log('Product found but no clip_embedding, calling Flask /embed-image...');
+        queryVector = await getClipImageEmbedding(dbProduct.imageUrl);
+
+        // Persist the embedding for future fast-path hits
+        if (queryVector) {
+          Product.findByIdAndUpdate(dbProduct._id, { clip_embedding: queryVector }).catch(() => {});
+        }
       }
 
-      // Extract precise product title keywords (filtering noise words)
-      const stopWords = new Set(['with', 'that', 'from', 'this', 'have', 'been', 'like', 'some', 'pack', 'dh', 'sale', 'new', 'free', 'best', 'good', 'brand']);
-      const titleWords = (dbProduct.title || '')
+      // Extract title keywords for Layer 1 keyword search
+      const stopWords = new Set(['with', 'that', 'from', 'this', 'have', 'pack', 'sale', 'new', 'free', 'best']);
+      keywords = (dbProduct.title || '')
         .split(/[\s,._\-/\\()]+/)
         .map(w => w.trim().toLowerCase())
-        .filter(w => w.length > 3 && !stopWords.has(w));
-
-      const analysis = {
-        queryVector,
-        detectedCategory: dbProduct.category || 'Other',
-        keywords: titleWords.slice(0, 5),
-        labelText: dbProduct.title || dbProduct.description
-      };
-
-      const products = await findVisuallyMatchingProducts(analysis);
-      
-      return res.json({
-        success: true,
-        products,
-        detectedCategory: analysis.detectedCategory
-      });
+        .filter(w => w.length > 3 && !stopWords.has(w))
+        .slice(0, 5);
+    } else {
+      // ── Fallback: external URL not in MongoDB ────────────────────────────
+      console.log('Product not in DB, calling Flask /embed-image for URL...');
+      queryVector = await getClipImageEmbedding(imageUrl);
     }
 
-    // 2. FALLBACK PATH for external images not in MongoDB:
-    const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
-    const buffer = Buffer.from(response.data);
+    if (!queryVector) {
+      return res.status(503).json({ success: false, message: 'CLIP embedding service unavailable.' });
+    }
 
-    const analysis = await analyzeVisualBuffer(buffer);
-    const products = await findVisuallyMatchingProducts(analysis);
+    const products = await findProductsByVector(queryVector, { keywords, excludeId });
 
-    res.json({
-      success: true,
-      products,
-      detectedCategory: analysis.detectedCategory,
-      predictions: analysis.predictions
-    });
+    res.json({ success: true, products, detectedCategory: dbProduct?.category || '' });
   } catch (err) {
     console.error('Visual URL search error:', err);
     res.status(500).json({ success: false, message: 'Visual search failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/search/text
+ * NEW endpoint — text-to-image search using CLIP.
+ * Accepts { text: "red summer dress" }.
+ * Calls Flask /embed-text → Atlas $vectorSearch on clip_embedding → returns products.
+ */
+router.post('/text', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: '"text" query is required.' });
+    }
+
+    const query = text.trim();
+    console.log(`--- Text-to-Image Search: "${query}" ---`);
+
+    const queryVector = await getClipTextEmbedding(query);
+    if (!queryVector) {
+      return res.status(503).json({ success: false, message: 'CLIP embedding service unavailable.' });
+    }
+
+    // Also use the text words as keyword fallback
+    const keywords = query.split(/\s+/).filter(w => w.length > 2);
+
+    const products = await findProductsByVector(queryVector, { keywords, limit: 40 });
+
+    res.json({ success: true, products, query });
+  } catch (err) {
+    console.error('Text search error:', err);
+    res.status(500).json({ success: false, message: 'Text search failed: ' + err.message });
   }
 });
 

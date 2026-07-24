@@ -135,11 +135,26 @@ async function runSyncPipeline(store, channelUsername) {
           throw new Error(`Failed to fetch photo from python service for message ${msg.message_id}`);
         }
 
-        // Run Gemini caption parsing and Cloudinary image upload in PARALLEL
+        // Run caption parsing and Cloudinary image upload in PARALLEL
         const [parsed, uploaded] = await Promise.all([
           parseCaptionWithClaude(msg.caption),
           uploadBase64ToCloudinary(photoResponse.data.image_base64),
         ]);
+
+        // Generate CLIP 512-dim embedding for the uploaded Cloudinary image
+        let clipEmbedding = [];
+        try {
+          const clipResponse = await axios.post(
+            `${TELEGRAM_SERVICE_URL}/embed-image`,
+            { imageUrl: uploaded.url },
+            { timeout: 30000 }
+          );
+          if (clipResponse.data?.success && Array.isArray(clipResponse.data.embedding)) {
+            clipEmbedding = clipResponse.data.embedding;
+          }
+        } catch (clipErr) {
+          console.warn(`⚠️  CLIP embedding failed for message ${msg.message_id}: ${clipErr.message}`);
+        }
 
         // Fetch the current store name/handle atomically (don't trust stale store object)
         const freshStore = await Store.findById(storeId).select('name handle').lean();
@@ -162,6 +177,7 @@ async function runSyncPipeline(store, channelUsername) {
           sourceChannel: channelUsername,
           sourceMessageId: msg.message_id,
           needsReview: parsed.needsReview,
+          clip_embedding: clipEmbedding,
         });
 
         return true;
