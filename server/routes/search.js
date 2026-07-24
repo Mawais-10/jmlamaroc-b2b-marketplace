@@ -114,8 +114,51 @@ async function findProductsByVector(queryVector, { keywords = [], category = '',
   const results = [];
   const seenIds = new Set();
 
-  // ── Layer 1: Text keyword search (fast, uses MongoDB text index) ─────────
-  if (keywords.length > 0) {
+  // ── Layer 1: CLIP Atlas $vectorSearch on clip_embedding (cosine, 512-dim) ─
+  if (queryVector && queryVector.length === 512) {
+    try {
+      const vectorResults = await Product.aggregate([
+        {
+          $vectorSearch: {
+            index: 'clip_vector_index',
+            path: 'clip_embedding',
+            queryVector,
+            numCandidates: 150,
+            limit: 50,
+          },
+        },
+        {
+          $addFields: {
+            score: { $meta: 'vectorSearchScore' },
+          },
+        },
+        {
+          $project: {
+            clip_embedding: 0,   // exclude large 512-dim vector from response
+            vector: 0,            // exclude legacy 1024-dim vector from response
+          },
+        },
+      ]);
+
+      console.log(`Layer 1 CLIP vectorSearch → raw matches: ${vectorResults.length}`);
+
+      // Sort by score descending (highest visual similarity first)
+      vectorResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+      for (const p of vectorResults) {
+        const id = p._id.toString();
+        if (!seenIds.has(id) && id !== excludeId) {
+          results.push(p);
+          seenIds.add(id);
+        }
+      }
+    } catch (err) {
+      console.warn('Atlas vectorSearch error (clip_vector_index):', err.message);
+    }
+  }
+
+  // ── Layer 2: Text keyword search (supplementary fallback) ─────────
+  if (keywords.length > 0 && results.length < limit) {
     const pattern = new RegExp(
       keywords
         .filter(w => w.length > 2)
@@ -135,7 +178,7 @@ async function findProductsByVector(queryVector, { keywords = [], category = '',
       .limit(limit)
       .lean();
 
-    console.log(`Layer 1 keyword search (${keywords.join(', ')}) → ${kwProducts.length} results`);
+    console.log(`Layer 2 keyword search (${keywords.join(', ')}) → ${kwProducts.length} results`);
 
     for (const p of kwProducts) {
       const id = p._id.toString();
@@ -143,62 +186,6 @@ async function findProductsByVector(queryVector, { keywords = [], category = '',
         results.push(p);
         seenIds.add(id);
       }
-    }
-    // Note: always continue to vector search — CLIP adds semantic matches keyword search misses
-  }
-
-  // ── Layer 2: CLIP Atlas $vectorSearch on clip_embedding (cosine, 512-dim) ─
-  if (queryVector && queryVector.length === 512) {
-    try {
-      const vectorResults = await Product.aggregate([
-        {
-          $vectorSearch: {
-            index: 'clip_vector_index',
-            path: 'clip_embedding',
-            queryVector,
-            numCandidates: 150,
-            limit: 50,
-          },
-        },
-        {
-          $project: {
-            clip_embedding: 0,   // exclude large vector from response
-            vector: 0,            // exclude legacy MobileNet vector
-            title: 1,
-            description: 1,
-            imageUrl: 1,
-            imagePublicId: 1,
-            price: 1,
-            currency: 1,
-            category: 1,
-            subcategory: 1,
-            tags: 1,
-            store: 1,
-            storeName: 1,
-            storeHandle: 1,
-            isActive: 1,
-            views: 1,
-            favoriteCount: 1,
-            source: 1,
-            createdAt: 1,
-            score: { $meta: 'vectorSearchScore' },  // Atlas cosine similarity score
-          },
-        },
-      ]);
-
-      // Filter by score threshold (cosine ≥ 0.18 is meaningful for CLIP cross-modal)
-      const goodMatches = vectorResults.filter(p => p.score >= 0.18);
-      console.log(`Layer 2 CLIP vectorSearch → raw: ${vectorResults.length}, good (≥0.18): ${goodMatches.length}`);
-
-      for (const p of goodMatches) {
-        const id = p._id.toString();
-        if (!seenIds.has(id) && id !== excludeId) {
-          results.push(p);
-          seenIds.add(id);
-        }
-      }
-    } catch (err) {
-      console.warn('Atlas vectorSearch error (clip_vector_index):', err.message);
     }
   }
 
