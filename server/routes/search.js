@@ -144,11 +144,7 @@ async function findProductsByVector(queryVector, { keywords = [], category = '',
         seenIds.add(id);
       }
     }
-
-    if (results.length >= 5) {
-      console.log(`Returning ${results.length} keyword results.`);
-      return results.slice(0, limit);
-    }
+    // Note: always continue to vector search — CLIP adds semantic matches keyword search misses
   }
 
   // ── Layer 2: CLIP Atlas $vectorSearch on clip_embedding (cosine, 512-dim) ─
@@ -166,16 +162,33 @@ async function findProductsByVector(queryVector, { keywords = [], category = '',
         },
         {
           $project: {
-            clip_embedding: 0,
-            vector: 0,
-            score: { $meta: 'vectorSearchScore' },
+            clip_embedding: 0,   // exclude large vector from response
+            vector: 0,            // exclude legacy MobileNet vector
+            title: 1,
+            description: 1,
+            imageUrl: 1,
+            imagePublicId: 1,
+            price: 1,
+            currency: 1,
+            category: 1,
+            subcategory: 1,
+            tags: 1,
+            store: 1,
+            storeName: 1,
+            storeHandle: 1,
+            isActive: 1,
+            views: 1,
+            favoriteCount: 1,
+            source: 1,
+            createdAt: 1,
+            score: { $meta: 'vectorSearchScore' },  // Atlas cosine similarity score
           },
         },
       ]);
 
-      // Filter by score threshold (cosine ≥ 0.20 is meaningful for CLIP)
-      const goodMatches = vectorResults.filter(p => p.score >= 0.20);
-      console.log(`Layer 2 CLIP vectorSearch → raw: ${vectorResults.length}, good (≥0.20): ${goodMatches.length}`);
+      // Filter by score threshold (cosine ≥ 0.18 is meaningful for CLIP cross-modal)
+      const goodMatches = vectorResults.filter(p => p.score >= 0.18);
+      console.log(`Layer 2 CLIP vectorSearch → raw: ${vectorResults.length}, good (≥0.18): ${goodMatches.length}`);
 
       for (const p of goodMatches) {
         const id = p._id.toString();
